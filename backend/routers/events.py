@@ -98,7 +98,24 @@ async def list_events(past: bool = False, db: AsyncSession = Depends(get_db)):
     rows = (await db.execute(query)).all()
     event_ids = [ev.id for ev, _ in rows]
 
+    # Preload hosts — they count as attendee #1 and lead the preview stack
+    host_ids = [ev.host_id for ev, _ in rows if ev.host_id]
+    hosts_by_id: dict[str, User] = {}
+    if host_ids:
+        host_rows = (
+            await db.execute(select(User).where(User.id.in_(host_ids)))
+        ).scalars().all()
+        hosts_by_id = {u.id: u for u in host_rows}
+
+    # Preview: host first, then up to 4 most recent approved attendees
     previews_by_event: dict[str, list[AttendeePreview]] = {}
+    for ev, _ in rows:
+        seeded: list[AttendeePreview] = []
+        if ev.host_id and ev.host_id in hosts_by_id:
+            h = hosts_by_id[ev.host_id]
+            seeded.append(AttendeePreview(id=h.id, name=h.name, profile_image=h.profile_image))
+        previews_by_event[ev.id] = seeded
+
     if event_ids:
         preview_query = (
             select(Rsvp.event_id, User.id, User.name, User.profile_image, Rsvp.created_at)
@@ -108,6 +125,9 @@ async def list_events(past: bool = False, db: AsyncSession = Depends(get_db)):
         )
         for r in (await db.execute(preview_query)).all():
             lst = previews_by_event.setdefault(r.event_id, [])
+            # Skip if host is also somehow RSVP'd (dedupe by user id)
+            if any(p.id == r.id for p in lst):
+                continue
             if len(lst) < 5:
                 lst.append(AttendeePreview(id=r.id, name=r.name, profile_image=r.profile_image))
 
@@ -117,7 +137,8 @@ async def list_events(past: bool = False, db: AsyncSession = Depends(get_db)):
             cover_image=ev.cover_image,
             location=ev.location, area=ev.area,
             capacity=ev.capacity, fee=ev.fee,
-            approved_count=int(cnt),
+            # Host counts as attendee #1
+            approved_count=int(cnt) + (1 if ev.host_id else 0),
             attendee_previews=previews_by_event.get(ev.id, []),
         )
         for ev, cnt in rows
@@ -181,7 +202,7 @@ async def get_event(event_id: str, db: AsyncSession = Depends(get_db)):
         select(func.count(Rsvp.id))
         .where(and_(Rsvp.event_id == event_id, Rsvp.status == "approved"))
     )
-    approved_count = approved_count_result.scalar() or 0
+    approved_count = (approved_count_result.scalar() or 0) + (1 if event.host_id else 0)
 
     return EventDetailOut(
         id=event.id, title=event.title, date=event.date, time=event.time, end_time=event.end_time,
