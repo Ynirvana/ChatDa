@@ -6,6 +6,7 @@ from datetime import date as DateType
 import json
 
 from database import get_db, Event, Rsvp, User, SocialLink
+from auth import optional_user_id
 
 router = APIRouter(prefix="/events", tags=["events"])
 
@@ -146,7 +147,11 @@ async def list_events(past: bool = False, db: AsyncSession = Depends(get_db)):
 
 
 @router.get("/{event_id}", response_model=EventDetailOut)
-async def get_event(event_id: str, db: AsyncSession = Depends(get_db)):
+async def get_event(
+    event_id: str,
+    db: AsyncSession = Depends(get_db),
+    viewer_id: str | None = Depends(optional_user_id),
+):
     event = await db.get(Event, event_id)
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
@@ -169,34 +174,38 @@ async def get_event(event_id: str, db: AsyncSession = Depends(get_db)):
                 social_links=[{"platform": l.platform, "url": l.url} for l in host_links],
             )
 
-    # Approved attendees
-    result = await db.execute(
-        select(User)
-        .join(Rsvp, and_(Rsvp.user_id == User.id, Rsvp.event_id == event_id, Rsvp.status == "approved"))
-    )
-    attendee_users = result.scalars().all()
-
-    # Social links for attendees
-    if attendee_users:
-        ids = [u.id for u in attendee_users]
-        links_result = await db.execute(
-            select(SocialLink).where(SocialLink.user_id.in_(ids))
-        )
-        all_links = links_result.scalars().all()
+    # Approved attendees — profile details only served to authenticated viewers.
+    # Matches the frontend "Sign in to see who's going" gate; blocks scraping.
+    if viewer_id is None:
+        attendees: list[AttendeeOut] = []
     else:
-        all_links = []
-
-    attendees = [
-        AttendeeOut(
-            id=u.id, name=u.name, nationality=u.nationality,
-            bio=u.bio, profile_image=u.profile_image,
-            social_links=[
-                {"platform": l.platform, "url": l.url}
-                for l in all_links if l.user_id == u.id
-            ],
+        result = await db.execute(
+            select(User)
+            .join(Rsvp, and_(Rsvp.user_id == User.id, Rsvp.event_id == event_id, Rsvp.status == "approved"))
         )
-        for u in attendee_users
-    ]
+        attendee_users = result.scalars().all()
+
+        # Social links for attendees
+        if attendee_users:
+            ids = [u.id for u in attendee_users]
+            links_result = await db.execute(
+                select(SocialLink).where(SocialLink.user_id.in_(ids))
+            )
+            all_links = links_result.scalars().all()
+        else:
+            all_links = []
+
+        attendees = [
+            AttendeeOut(
+                id=u.id, name=u.name, nationality=u.nationality,
+                bio=u.bio, profile_image=u.profile_image,
+                social_links=[
+                    {"platform": l.platform, "url": l.url}
+                    for l in all_links if l.user_id == u.id
+                ],
+            )
+            for u in attendee_users
+        ]
 
     approved_count_result = await db.execute(
         select(func.count(Rsvp.id))

@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, delete
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator
 from nanoid import generate
 
 from database import get_db, User, SocialLink, Rsvp, Event
@@ -11,17 +11,28 @@ router = APIRouter(prefix="/users", tags=["users"])
 
 
 class SocialLinkIn(BaseModel):
-    platform: str
-    url: str
+    platform: str = Field(min_length=1, max_length=40)
+    url: str = Field(min_length=1, max_length=500)
 
 
 class OnboardingBody(BaseModel):
-    name: str
-    nationality: str
-    status: str | None = None
-    bio: str | None = None
+    name: str = Field(min_length=1, max_length=80)
+    nationality: str = Field(min_length=1, max_length=60)
+    status: str | None = Field(default=None, max_length=40)
+    bio: str | None = Field(default=None, max_length=500)
     profile_image: str | None = None
-    social_links: list[SocialLinkIn]
+    social_links: list[SocialLinkIn] = Field(default_factory=list, max_length=10)
+
+    @field_validator("profile_image")
+    @classmethod
+    def _check_image(cls, v: str | None) -> str | None:
+        if v is None or v == "":
+            return None
+        if len(v) > 6 * 1024 * 1024:  # ~4.5 MiB raw
+            raise ValueError("profile_image too large (max ~4.5 MiB)")
+        if not (v.startswith("data:image/") or v.startswith("http")):
+            raise ValueError("invalid profile_image")
+        return v
 
 
 class ProfileOut(BaseModel):

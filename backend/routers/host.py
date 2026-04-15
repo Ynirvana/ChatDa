@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator
 from nanoid import generate
 
 from database import get_db, Event, Rsvp, User
@@ -9,24 +9,41 @@ from auth import get_current_user_id
 
 router = APIRouter(prefix="/host", tags=["host"])
 
+MAX_IMAGE_B64 = 6 * 1024 * 1024  # ~4.5 MiB raw after base64 decode
+
+
+def _check_image(value: str | None) -> str | None:
+    if value is None or value == "":
+        return None
+    if len(value) > MAX_IMAGE_B64:
+        raise ValueError("image too large (max ~4.5 MiB)")
+    if not value.startswith("data:image/") and not value.startswith("http"):
+        raise ValueError("invalid image (must be data:image/... or http(s) URL)")
+    return value
+
 
 class CreateEventBody(BaseModel):
-    title: str
-    date: str
-    time: str
-    end_time: str | None = None
-    location: str
-    area: str | None = None
-    capacity: int
-    fee: int = 0
-    description: str | None = None
+    title: str = Field(min_length=1, max_length=120)
+    date: str = Field(min_length=10, max_length=10)  # YYYY-MM-DD
+    time: str = Field(min_length=1, max_length=16)
+    end_time: str | None = Field(default=None, max_length=16)
+    location: str = Field(min_length=1, max_length=200)
+    area: str | None = Field(default=None, max_length=100)
+    capacity: int = Field(ge=1, le=500)
+    fee: int = Field(default=0, ge=0, le=10_000_000)
+    description: str | None = Field(default=None, max_length=5000)
     cover_image: str | None = None
-    google_map_url: str | None = None
-    naver_map_url: str | None = None
-    directions: str | None = None
-    requirements: list[str] = []
-    payment_method: str | None = None
-    fee_note: str | None = None
+    google_map_url: str | None = Field(default=None, max_length=2000)
+    naver_map_url: str | None = Field(default=None, max_length=2000)
+    directions: str | None = Field(default=None, max_length=2000)
+    requirements: list[str] = Field(default_factory=list, max_length=20)
+    payment_method: str | None = Field(default=None, max_length=40)
+    fee_note: str | None = Field(default=None, max_length=500)
+
+    @field_validator("cover_image")
+    @classmethod
+    def validate_cover_image(cls, v: str | None) -> str | None:
+        return _check_image(v)
 
 
 class UpdateRsvpBody(BaseModel):

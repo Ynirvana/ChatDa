@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, and_, delete
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from nanoid import generate
 
 from database import get_db, Post, PostLike, PostComment, User
@@ -33,7 +33,7 @@ def optional_user_id(
 
 
 class CreatePostBody(BaseModel):
-    content: str
+    content: str = Field(min_length=1, max_length=2000)
 
 
 class PostOut(BaseModel):
@@ -61,8 +61,8 @@ class CommentOut(BaseModel):
 
 
 class CreateCommentBody(BaseModel):
-    content: str
-    parent_id: str | None = None
+    content: str = Field(min_length=1, max_length=1000)
+    parent_id: str | None = Field(default=None, max_length=50)
 
 
 @router.get("/posts", response_model=list[PostOut])

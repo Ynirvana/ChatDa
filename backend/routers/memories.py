@@ -2,7 +2,7 @@ import json
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator
 from nanoid import generate
 
 from database import get_db, Event, EventMemory, Rsvp, User
@@ -23,8 +23,20 @@ class MemoryOut(BaseModel):
 
 
 class CreateMemoryBody(BaseModel):
-    content: str
-    photos: list[str] = []
+    content: str = Field(default="", max_length=2000)
+    photos: list[str] = Field(default_factory=list, max_length=10)
+
+    @field_validator("photos")
+    @classmethod
+    def _check_photos(cls, photos: list[str]) -> list[str]:
+        # Per-photo size cap (body middleware already gates total at 15 MiB,
+        # but one giant photo should also be rejected)
+        for p in photos:
+            if len(p) > 6 * 1024 * 1024:
+                raise ValueError("photo too large (max ~4.5 MiB each)")
+            if not (p.startswith("data:image/") or p.startswith("http")):
+                raise ValueError("invalid photo format")
+        return photos
 
 
 @router.get("/events/{event_id}/memories", response_model=list[MemoryOut])

@@ -49,6 +49,24 @@ def get_current_user_email(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
 
 
+def optional_user_id(
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer),
+) -> str | None:
+    """Returns user id if a valid JWT is present, else None. Never raises."""
+    if not credentials:
+        return None
+    try:
+        payload = jwt.decode(
+            credentials.credentials,
+            settings.nextauth_secret,
+            algorithms=["HS256"],
+            options={"verify_aud": False},
+        )
+        return payload.get("sub")
+    except JWTError:
+        return None
+
+
 def is_admin_email(email: str | None) -> bool:
     if not email:
         return False
