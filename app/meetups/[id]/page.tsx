@@ -13,6 +13,56 @@ import { backendFetch, type ApiEventDetail, type ApiPendingRsvp } from '@/lib/se
 import { RsvpActions } from '@/components/host/RsvpActions';
 import { formatTime } from '@/lib/utils';
 import { PlatformIcon } from '@/components/ui/PlatformIcon';
+import type { Metadata } from 'next';
+
+const BACKEND_PUBLIC = process.env.BACKEND_URL ?? 'http://localhost:8001';
+const SITE_URL = process.env.NEXTAUTH_URL ?? 'https://chatda.life';
+
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const { id } = await params;
+  try {
+    const res = await fetch(`${BACKEND_PUBLIC}/events/${id}`, { cache: 'no-store' });
+    if (!res.ok) return { title: 'Meetup · ChatDa' };
+    const event = await res.json() as ApiEventDetail;
+
+    const d = new Date(event.date + 'T00:00');
+    const dateStr = d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+    const timeStr = event.time ? ` · ${event.time}${event.end_time ? `–${event.end_time}` : ''}` : '';
+    const locStr = event.area ? ` · ${event.area}` : '';
+    const spotsLeft = event.capacity - event.approved_count;
+    const spotsStr = spotsLeft > 0 ? ` · ${spotsLeft} spot${spotsLeft === 1 ? '' : 's'} left` : ' · Full';
+
+    const description = (event.description?.trim()?.slice(0, 140))
+      || `${dateStr}${timeStr}${locStr}${spotsStr}`;
+
+    const url = `${SITE_URL}/meetups/${id}`;
+    const ogImage = event.cover_image && /^https?:\/\//i.test(event.cover_image)
+      ? event.cover_image
+      : undefined;
+
+    return {
+      title: `${event.title} · ChatDa`,
+      description,
+      openGraph: {
+        title: event.title,
+        description,
+        url,
+        siteName: 'ChatDa',
+        type: 'website',
+        ...(ogImage ? { images: [{ url: ogImage }] } : {}),
+      },
+      twitter: {
+        card: ogImage ? 'summary_large_image' : 'summary',
+        title: event.title,
+        description,
+        ...(ogImage ? { images: [ogImage] } : {}),
+      },
+      alternates: { canonical: url },
+    };
+  } catch {
+    return { title: 'Meetup · ChatDa' };
+  }
+}
 
 export default async function EventDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;

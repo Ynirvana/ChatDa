@@ -7,6 +7,7 @@ import { Card, Orb } from '@/components/ui/Card';
 import { backendFetch, type ApiProfile } from '@/lib/server-api';
 import { USER_STATUSES } from '@/lib/constants';
 import { formatTime } from '@/lib/utils';
+import { CopyEventLink } from '@/components/CopyEventLink';
 
 const platformIcon: Record<string, string> = {
   linkedin: '💼', instagram: '📸', x: '𝕏', tiktok: '🎵',
@@ -164,13 +165,18 @@ export default async function ProfilePage() {
                             {it.area ? ` · ${it.area}` : ''}
                           </p>
                         </div>
-                        <span style={{
-                          fontSize: 12, fontWeight: 700, padding: '4px 10px',
-                          borderRadius: 999, background: s.bg,
-                          color: s.color, whiteSpace: 'nowrap', flexShrink: 0,
-                        }}>
-                          {s.label}
-                        </span>
+                        <div style={{ display: 'flex', gap: 6, flexShrink: 0, alignItems: 'center' }}>
+                          {it.statusKey === 'hosting' && (
+                            <CopyEventLink eventId={it.event_id} title={it.title} />
+                          )}
+                          <span style={{
+                            fontSize: 12, fontWeight: 700, padding: '4px 10px',
+                            borderRadius: 999, background: s.bg,
+                            color: s.color, whiteSpace: 'nowrap',
+                          }}>
+                            {s.label}
+                          </span>
+                        </div>
                       </div>
                     </Card>
                   </Link>
