@@ -227,7 +227,41 @@ curl -s https://chatda.life/api/auth/providers  # Google provider with callback 
 
 ---
 
-## 8. 남은 작업 / 의도적 미루기
+## 8. 라이브 후 추가 작업
+
+### 8.1 보안 헤더 + 백엔드 하드닝 (QA 후 보강)
+- `next.config.ts`: HSTS / X-Frame-Options / X-Content-Type-Options / Referrer-Policy / Permissions-Policy 5종 추가
+- `backend/main.py`: 15MB body size 미들웨어 (JSONResponse로 413 반환 — HTTPException 경로는 500됨), CORS allow_origins를 `chatda.life`/`www.chatda.life`로 명시 (기존 오타 `chatda.app` 수정)
+- `docker-compose.prod.yml` app 서비스에 `HOSTNAME: "0.0.0.0"` 추가 — Next.js standalone의 healthcheck 버그 수정 (Docker가 HOSTNAME을 컨테이너ID로 세팅해서 0.0.0.0에 바인드 안 됨)
+
+### 8.2 Prod DB 테스트 데이터 정리
+jun@chatda.test / alex@chatda.test + 3개 이벤트 + 관련 RSVP/social/memories 삭제. 실계정(dykim9304, gpt.plus.openai)은 유지.
+
+### 8.3 관리자 (모더레이션) 기능 추가
+**요구**: "욕설하는 유저는 삭제할 수 있어야 최소"
+
+**선택**: `ADMIN_EMAILS` 환경변수 기반 (DB 스키마 변경 없이, env만으로 on/off).
+
+**구현:**
+- `backend/settings.py`: `admin_emails: str` + `admin_email_list` property
+- `backend/auth.py`: `is_admin_email(email)`, `require_admin` dependency
+- `backend/routers/admin.py` (신규): `/admin/overview` (GET), `/admin/users/{id}` (DELETE cascade), `/admin/events/{id}` (DELETE cascade)
+- `backend/routers/{feed,memories}.py`: 기존 DELETE 엔드포인트에 `email` 의존성 추가 + `is_admin_email(email)` override 허용
+- `backend/routers/host.py`: 기존 host-only 체크 유지 (admin은 별도 admin 경로로 처리)
+- `lib/admin.ts` (신규): `isAdminEmail(email)` 헬퍼 (server-side only)
+- `app/admin/page.tsx`: 서버 컴포넌트, 비admin은 `/`로 리다이렉트
+- `app/admin/AdminClient.tsx`: 5탭 UI (Posts/Comments/Memories/Users/Events) + 각 행 Delete 버튼
+- `app/api/admin/{users,events}/[id]/route.ts`: Next.js 프록시
+- `components/ui/Nav.tsx`: `isAdmin` prop 추가 → 드롭다운에 Admin 링크
+- 모든 페이지의 `<Nav user>` 호출처 7곳에 `isAdmin={isAdminEmail(session?.user?.email)}` 주입
+
+**배포 절차:** `.env.production.local` + `backend/.env.production` 양쪽에 `ADMIN_EMAILS=dykim9304@gmail.com` 추가 → `docker compose ... up -d`로 env 재주입 (rebuild 불필요, 이미 새 이미지 빌드됨).
+
+**제거한 죽은 코드**: `backend/settings.py`의 `host_email` 필드 (초기 계획에 있었으나 "모든 로그인 유저가 호스팅 가능"으로 변경되며 미사용).
+
+---
+
+## 9. 남은 작업 / 의도적 미루기
 
 ### 정리 대기
 - `chatda` prod DB의 **테스트 seed 데이터 3개** (Jun 유저 등) — 실사용자 생기기 전 TRUNCATE 필요
@@ -249,7 +283,7 @@ curl -s https://chatda.life/api/auth/providers  # Google provider with callback 
 
 ---
 
-## 9. 이 세션에서 수정된 파일 (커밋 대상)
+## 10. 이 세션에서 수정된 파일 (커밋 대상)
 
 ```
 M  .gitignore                               (기존, 변경 X)
@@ -283,7 +317,7 @@ M  backend/routers/events.py                ← 수정 (attendee_previews)
 
 ---
 
-## 10. 결정 로그 (Why)
+## 11. 결정 로그 (Why)
 
 | 결정 | 선택 | 이유 |
 |---|---|---|
@@ -296,3 +330,6 @@ M  backend/routers/events.py                ← 수정 (attendee_previews)
 | 터널 라벨 변경 | 스킵 (chatcity 그대로) | CLI 미지원 + Migrate는 irreversible. 라벨은 내부용이라 동작 영향 0. |
 | `NEXTAUTH_SECRET` dev/prod | (현재 동일로 추정) | 배포 급해서 향후 분리로 미룸 |
 | www/apex 전략 | 둘 다 같은 콘텐츠로 (301 아직 안 함) | CF Redirect Rule은 언제든 추가 가능 |
+| Admin 구현 방식 | `ADMIN_EMAILS` env 화이트리스트 | DB 스키마 변경 없이 admin on/off 가능. solo MVP에 적합. 유저 50명+면 `users.role` 컬럼으로 마이그레이션 고려 |
+| Admin UI 위치 | `/admin` 전용 페이지 (기존 페이지에 admin 버튼 박지 않음) | 실수 삭제 방지, 관심사 분리, 일반 유저 UI 영향 0 |
+| 유저 삭제 방식 | Cascade 수동 delete (FK cascade 미정의) | DB FK 재설계는 별개 작업. 수동 cascade로 MVP 커버 |

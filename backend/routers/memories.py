@@ -6,7 +6,7 @@ from pydantic import BaseModel
 from nanoid import generate
 
 from database import get_db, Event, EventMemory, Rsvp, User
-from auth import get_current_user_id
+from auth import get_current_user_id, get_current_user_email, is_admin_email
 
 router = APIRouter(tags=["memories"])
 
@@ -113,12 +113,13 @@ async def create_memory(
 async def delete_memory(
     memory_id: str,
     user_id: str = Depends(get_current_user_id),
+    email: str = Depends(get_current_user_email),
     db: AsyncSession = Depends(get_db),
 ):
     memory = await db.get(EventMemory, memory_id)
     if not memory:
         raise HTTPException(status_code=404, detail="Memory not found")
-    if memory.user_id != user_id:
+    if memory.user_id != user_id and not is_admin_email(email):
         raise HTTPException(status_code=403, detail="Not your memory")
 
     await db.delete(memory)

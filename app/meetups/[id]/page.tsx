@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { auth } from '@/lib/auth';
+import { isAdminEmail } from '@/lib/admin';
 import { Nav } from '@/components/ui/Nav';
 import { Orb } from '@/components/ui/Card';
 import { AttendeeCard, type Attendee } from '@/components/AttendeeCard';
@@ -71,7 +72,7 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
 
   return (
     <div className="page-bg" style={{ minHeight: '100vh' }}>
-      <Nav user={session?.user} />
+      <Nav user={session?.user} isAdmin={isAdminEmail(session?.user?.email)} />
       <Orb size={400} color="rgba(108,92,231,.2)" top={-50} right={-100} />
 
       {/* Cover image — full width below nav */}

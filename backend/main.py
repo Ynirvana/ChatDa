@@ -2,7 +2,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from routers import events, rsvp, users, host, feed, memories
+from routers import events, rsvp, users, host, feed, memories, admin
 
 MAX_BODY_SIZE = 15 * 1024 * 1024  # 15 MiB
 
@@ -35,6 +35,7 @@ app.include_router(users.router)
 app.include_router(host.router)
 app.include_router(feed.router)
 app.include_router(memories.router)
+app.include_router(admin.router)
 
 
 @app.get("/health")

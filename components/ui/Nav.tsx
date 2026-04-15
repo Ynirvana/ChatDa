@@ -11,7 +11,7 @@ interface NavUser {
   image?: string | null;
 }
 
-export function Nav({ user }: { user?: NavUser | null }) {
+export function Nav({ user, isAdmin = false }: { user?: NavUser | null; isAdmin?: boolean }) {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
@@ -127,6 +127,20 @@ export function Nav({ user }: { user?: NavUser | null }) {
                 >
                   Profile
                 </Link>
+                {isAdmin && (
+                  <Link
+                    href="/admin"
+                    role="menuitem"
+                    onClick={() => setMenuOpen(false)}
+                    style={{
+                      display: 'block', padding: '10px 14px', borderRadius: 10,
+                      color: 'rgba(116,185,255,.95)', fontSize: 14, fontWeight: 600,
+                      textDecoration: 'none',
+                    }}
+                  >
+                    Admin
+                  </Link>
+                )}
                 <button
                   type="button"
                   role="menuitem"

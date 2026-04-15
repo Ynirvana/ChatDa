@@ -270,7 +270,52 @@ PGPASSWORD=chatda psql -h localhost -p 5434 -U chatda -d chatda \
 
 ---
 
-## 11. 긴급 상황
+## 11. 관리자 (모더레이션)
+
+### Admin 활성화 / 추가
+`.env.production.local` + `backend/.env.production` 양쪽에 동일한 값으로:
+```
+ADMIN_EMAILS=first@example.com,second@example.com
+```
+변경 후 두 컨테이너 환경변수 반영:
+```bash
+cd /home/dykim/project/ChatDa
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+```
+(rebuild 불필요, env만 재주입하면 됨)
+
+### UI 사용
+- https://chatda.life/admin 접속 (Admin만 보임. Nav 드롭다운에도 링크 노출)
+- 탭: Posts / Comments / Memories / Users / Events
+- 각 항목 오른쪽 Delete 버튼 — 확인 후 즉시 삭제
+
+### API로 직접 (긴급 시 curl)
+세션 쿠키로 직접 호출 가능. 또는 DB 직접:
+```bash
+docker exec -it chatda-db-1 psql -U chatda chatda
+
+# 악성 게시글 1건 삭제
+DELETE FROM posts WHERE id = 'abc123';
+
+# 악성 유저 전부 삭제 (cascade 수동)
+BEGIN;
+DELETE FROM event_memories WHERE user_id = 'xxx';
+DELETE FROM post_comments WHERE user_id = 'xxx';
+DELETE FROM post_likes   WHERE user_id = 'xxx';
+DELETE FROM posts        WHERE user_id = 'xxx';
+DELETE FROM rsvps        WHERE user_id = 'xxx';
+DELETE FROM social_links WHERE user_id = 'xxx';
+DELETE FROM events       WHERE host_id = 'xxx';
+DELETE FROM users        WHERE id = 'xxx';
+COMMIT;
+```
+
+### Admin 권한 취소
+`ADMIN_EMAILS`에서 해당 이메일 제거 → 컨테이너 재시작 → 즉시 권한 상실.
+
+---
+
+## 12. 긴급 상황
 
 ### `https://chatda.life` 502
 1. 컨테이너 살아있는지: `docker compose -f docker-compose.yml -f docker-compose.prod.yml ps`
@@ -307,7 +352,7 @@ sudo systemctl start cloudflared
 
 ---
 
-## 12. 모니터링 (현재 없음, 향후 추가)
+## 13. 모니터링 (현재 없음, 향후 추가)
 
 - [ ] UptimeRobot / BetterStack 무료로 `https://chatda.life/` 5분 간격 체크
 - [ ] Sentry로 에러 모니터링

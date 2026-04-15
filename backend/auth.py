@@ -47,3 +47,15 @@ def get_current_user_email(
         return email
     except JWTError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+
+
+def is_admin_email(email: str | None) -> bool:
+    if not email:
+        return False
+    return email.strip().lower() in settings.admin_email_list
+
+
+def require_admin(email: str = Depends(get_current_user_email)) -> str:
+    if not is_admin_email(email):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin only")
+    return email

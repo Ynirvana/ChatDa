@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { auth } from '@/lib/auth';
+import { isAdminEmail } from '@/lib/admin';
 import { Nav } from '@/components/ui/Nav';
 import { Card, Orb } from '@/components/ui/Card';
 import { backendFetch, type ApiProfile } from '@/lib/server-api';
@@ -34,7 +35,7 @@ export default async function ProfilePage() {
 
   return (
     <div className="page-bg" style={{ minHeight: '100vh' }}>
-      <Nav user={session.user} />
+      <Nav user={session.user} isAdmin={isAdminEmail(session.user.email)} />
       <Orb size={400} color="rgba(108,92,231,.2)" top={-50} left={-100} />
 
       <div style={{ maxWidth: 600, margin: '0 auto', padding: '40px 24px 80px', position: 'relative', zIndex: 1 }}>

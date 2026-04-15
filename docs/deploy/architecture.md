@@ -181,6 +181,7 @@ ingress:
 
 Frontend 공통: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `NEXTAUTH_SECRET`, `NEXTAUTH_URL`, `BACKEND_URL`, `DATABASE_URL`
 Backend 공통: `DATABASE_URL`, `NEXTAUTH_SECRET`
+공통 (둘 다): `ADMIN_EMAILS` — 쉼표 구분, `/admin` 접근 + 모든 콘텐츠 삭제 권한. **frontend와 backend 값이 동일해야 함** (프론트는 UI 라우팅, 백엔드는 실제 권한 체크).
 
 **Prod/Dev 차이 포인트:**
 - `NEXTAUTH_URL`: `https://chatda.life` vs `http://localhost:3000`
@@ -189,6 +190,34 @@ Backend 공통: `DATABASE_URL`, `NEXTAUTH_SECRET`
 - `NEXTAUTH_SECRET`: **현재 dev/prod 동일**. 향후 분리 권장 (dev 유출 시 prod 침투 위험)
 
 **규칙:** Frontend와 Backend의 `NEXTAUTH_SECRET`은 같은 환경 내에서 **반드시 일치** (JWT 서명/검증).
+
+---
+
+## 관리자 (Admin) 기능
+
+**활성 방식:** `ADMIN_EMAILS` 환경변수 (쉼표 구분 이메일 리스트).
+- DB에 `role` 컬럼 없음. env 기반 화이트리스트.
+- Frontend `.env.production.local` + backend `.env.production` 양쪽에 동일하게 설정 (각각 다른 역할로 사용).
+
+**접근:** `/admin` 페이지 (Nav 드롭다운에 admin 한정으로 노출).
+
+**권한:**
+- 모든 게시글/댓글/메모리 삭제 (기존 DELETE 엔드포인트가 `is_admin_email(email)` 체크 추가)
+- 유저 cascade 삭제 (`DELETE /admin/users/{id}`) — 본인 posts/comments/rsvps/social_links/주최 이벤트까지 전부
+- 이벤트 cascade 삭제 (`DELETE /admin/events/{id}`) — rsvps/memories까지
+- 최근 50개씩 posts/comments/memories + 전 유저/이벤트 조회 (`GET /admin/overview`)
+
+**보안:**
+- Frontend 서버 컴포넌트에서 `isAdminEmail(session.user.email)` 체크 → 비admin `/`로 리다이렉트
+- Next.js API 프록시 (`/api/admin/*`)도 동일 체크
+- 백엔드 `require_admin` dependency가 최종 gatekeeping (JWT의 email 클레임이 `admin_email_list`에 있어야 200)
+
+**파일:**
+- `backend/routers/admin.py` — overview/users/events 엔드포인트
+- `backend/auth.py` — `is_admin_email`, `require_admin`
+- `lib/admin.ts` — frontend `isAdminEmail` 헬퍼
+- `app/admin/page.tsx`, `app/admin/AdminClient.tsx` — 탭형 관리 UI
+- `app/api/admin/users/[id]/route.ts`, `app/api/admin/events/[id]/route.ts` — prox
 
 ---
 

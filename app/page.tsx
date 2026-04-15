@@ -4,6 +4,7 @@ import { Nav } from '@/components/ui/Nav';
 import { Button } from '@/components/ui/Button';
 import { AttendeeCard, type Attendee } from '@/components/AttendeeCard';
 import { auth } from '@/lib/auth';
+import { isAdminEmail } from '@/lib/admin';
 import { backendFetch, type ApiEventSummary, type ApiEventDetail } from '@/lib/server-api';
 
 export const revalidate = 60;
@@ -32,7 +33,7 @@ export default async function Home() {
 
   return (
     <div className="page-bg">
-      <Nav user={session?.user} />
+      <Nav user={session?.user} isAdmin={isAdminEmail(session?.user?.email)} />
 
       <Orb size={600} color="rgba(108,92,231,.3)" top={-100} left={-200} />
       <Orb size={400} color="rgba(232,67,147,.25)" top={200} right={-100} delay={2} />

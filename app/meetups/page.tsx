@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { auth } from '@/lib/auth';
+import { isAdminEmail } from '@/lib/admin';
 import { Nav } from '@/components/ui/Nav';
 import { Orb } from '@/components/ui/Card';
 import { EventCard, type EventSummary } from '@/components/EventCard';
@@ -48,7 +49,7 @@ export default async function MeetupsPage({
 
   return (
     <div className="page-bg" style={{ minHeight: '100vh' }}>
-      <Nav user={session?.user} />
+      <Nav user={session?.user} isAdmin={isAdminEmail(session?.user?.email)} />
 
       <Orb size={400} color="rgba(108,92,231,.25)" top={-50} left={-100} />
       <Orb size={300} color="rgba(255,107,53,.2)" top={300} right={-80} delay={2} />

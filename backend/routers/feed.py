@@ -6,7 +6,7 @@ from pydantic import BaseModel
 from nanoid import generate
 
 from database import get_db, Post, PostLike, PostComment, User
-from auth import get_current_user_id
+from auth import get_current_user_id, get_current_user_email, is_admin_email
 
 router = APIRouter(prefix="/feed", tags=["feed"])
 
@@ -184,12 +184,13 @@ async def toggle_like(
 async def delete_post(
     post_id: str,
     user_id: str = Depends(get_current_user_id),
+    email: str = Depends(get_current_user_email),
     db: AsyncSession = Depends(get_db),
 ):
     post = await db.get(Post, post_id)
     if not post:
         raise HTTPException(status_code=404, detail="Post not found")
-    if post.user_id != user_id:
+    if post.user_id != user_id and not is_admin_email(email):
         raise HTTPException(status_code=403, detail="Not your post")
 
     await db.delete(post)
@@ -277,12 +278,13 @@ async def create_comment(
 async def delete_comment(
     comment_id: str,
     user_id: str = Depends(get_current_user_id),
+    email: str = Depends(get_current_user_email),
     db: AsyncSession = Depends(get_db),
 ):
     comment = await db.get(PostComment, comment_id)
     if not comment:
         raise HTTPException(status_code=404, detail="Comment not found")
-    if comment.user_id != user_id:
+    if comment.user_id != user_id and not is_admin_email(email):
         raise HTTPException(status_code=403, detail="Not your comment")
 
     await db.delete(comment)
