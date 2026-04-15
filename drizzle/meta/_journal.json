@@ -1,0 +1,90 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1776150241424,
+      "tag": "0000_nostalgic_warstar",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1776160311884,
+      "tag": "0001_volatile_hellcat",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1776161407706,
+      "tag": "0002_daffy_hawkeye",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1776161583434,
+      "tag": "0003_simple_madame_masque",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1776163500947,
+      "tag": "0004_brown_the_liberteens",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1776163953562,
+      "tag": "0005_melted_ironclad",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1776165228449,
+      "tag": "0006_aberrant_strong_guy",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1776165601128,
+      "tag": "0007_plain_cassandra_nova",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1776166035905,
+      "tag": "0008_thin_pete_wisdom",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1776166617846,
+      "tag": "0009_funny_madame_masque",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1776167375019,
+      "tag": "0010_slimy_centennial",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1776168165850,
+      "tag": "0011_little_marten_broadcloak",
+      "breakpoints": true
+    }
+  ]
+}
