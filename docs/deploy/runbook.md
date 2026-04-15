@@ -143,23 +143,24 @@ PGPASSWORD=chatda psql -h localhost -p 5434 -U chatda -d chatda \
 
 ## 6. DB 백업 / 복원
 
-### 수동 백업
+### 수동 백업 (즉석)
 ```bash
-BACKUP_FILE="chatda-backup-$(date +%F-%H%M).sql"
-docker exec chatda-db-1 pg_dump -U chatda chatda > ~/$BACKUP_FILE
-ls -lh ~/$BACKUP_FILE
+/home/dykim/project/ChatDa/scripts/backup-db.sh
+# → /home/dykim/chatda-backups/chatda-<date>.sql.gz
 ```
 
 ### 복원
 ```bash
-cat ~/chatda-backup-YYYY-MM-DD-HHMM.sql | docker exec -i chatda-db-1 psql -U chatda chatda
+gunzip -c /home/dykim/chatda-backups/chatda-YYYY-MM-DD-HHMM.sql.gz | \
+  docker exec -i chatda-db-1 psql -U chatda chatda
 ```
 
 ### 자동 백업 크론 (권장)
 ```bash
-# crontab -e
-0 4 * * * docker exec chatda-db-1 pg_dump -U chatda chatda | gzip > /home/dykim/backups/chatda-$(date +\%F).sql.gz
+# crontab -e 편집 후 아래 줄 추가 (매일 04:00 KST)
+0 4 * * * /home/dykim/project/ChatDa/scripts/backup-db.sh
 ```
+스크립트 동작: gzip 무결성 검증 + 30일 retention + backup.log 기록. 상세는 [`security-followup.md §1`](security-followup.md#1-️-자동-db-백업-cron-등록-즉시) 참조.
 
 ---
 

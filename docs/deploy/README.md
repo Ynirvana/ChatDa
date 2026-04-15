@@ -8,6 +8,7 @@
 |---|---|---|
 | [architecture.md](architecture.md) | 현재 프로덕션 구조 (포트/도메인/컨테이너/DB) | "지금 시스템이 어떻게 생겼더라?" |
 | [runbook.md](runbook.md) | 운영 매뉴얼 (start/stop/logs/update/rollback) | "재시작/업데이트 어떻게 하지?" |
+| [security-followup.md](security-followup.md) | 보안/운영 하드닝 backlog (rate limit, Sentry, uptime, CF Bot Fight, ...) | "다음 라운드에 뭐 보강할까?" |
 | [2026-04-15-prod-deploy-session.md](2026-04-15-prod-deploy-session.md) | 초기 라이브 전환 세션 로그 | "이 결정 왜 이렇게 했지?" |
 
 ## 관련 문서 (다른 디렉토리)
