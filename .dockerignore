@@ -1,0 +1,48 @@
+# VCS
+.git
+.gitignore
+
+# Deps
+node_modules
+.pnp
+.pnp.*
+.yarn
+
+# Build artifacts
+.next
+out
+build
+dist
+*.tsbuildinfo
+
+# Env — secrets injected at runtime via env_file, not baked into image
+.env
+.env.*
+!.env.example
+backend/.env
+backend/.env.*
+!backend/.env.example
+
+# Python
+backend/__pycache__
+backend/**/__pycache__
+backend/*.pyc
+backend/.venv
+backend/venv
+
+# Editor / OS
+.vscode
+.idea
+.DS_Store
+
+# Logs
+*.log
+npm-debug.log*
+
+# Misc
+README.md
+docs
+drizzle
+img
+scripts
+*.md

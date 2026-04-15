@@ -1,0 +1,48 @@
+services:
+  backend:
+    build: ./backend
+    image: chatda-backend:prod
+    container_name: chatda-backend
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file:
+      - backend/.env.production
+    environment:
+      DATABASE_URL: postgresql+asyncpg://chatda:chatda@db:5432/chatda
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request,sys;sys.exit(0 if urllib.request.urlopen('http://localhost:8000/docs',timeout=3).status==200 else 1)\""]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    mem_limit: 512m
+    cpus: 1.0
+
+  app:
+    build:
+      context: .
+      target: runner
+    image: chatda-app:prod
+    container_name: chatda-app
+    ports:
+      - "3001:3000"
+    depends_on:
+      - backend
+    env_file:
+      - .env.production.local
+    environment:
+      BACKEND_URL: http://backend:8000
+      HOSTNAME: "0.0.0.0"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/ >/dev/null 2>&1 || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    mem_limit: 768m
+    cpus: 1.5

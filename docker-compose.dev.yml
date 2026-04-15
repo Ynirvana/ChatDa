@@ -1,0 +1,40 @@
+services:
+  backend-dev:
+    build: ./backend
+    image: chatda-backend:dev
+    container_name: chatda-backend-dev
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    ports:
+      - "8001:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file:
+      - backend/.env.local
+    environment:
+      DATABASE_URL: postgresql+asyncpg://chatda:chatda@db:5432/chatda_dev
+    volumes:
+      - ./backend:/app
+    restart: unless-stopped
+
+  app-dev:
+    build:
+      context: .
+      target: deps
+    image: chatda-app:dev
+    container_name: chatda-app-dev
+    working_dir: /app
+    command: npm run dev
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend-dev
+    env_file:
+      - .env.local
+    environment:
+      BACKEND_URL: http://backend-dev:8000
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/.next
+    restart: unless-stopped
