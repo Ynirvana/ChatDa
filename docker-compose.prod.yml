@@ -37,6 +37,8 @@ services:
     environment:
       BACKEND_URL: http://backend:8000
       HOSTNAME: "0.0.0.0"
+      # Override host-style URL from .env.production.local for Docker network
+      DATABASE_URL: postgresql://chatda:chatda@db:5432/chatda
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/ >/dev/null 2>&1 || exit 1"]
