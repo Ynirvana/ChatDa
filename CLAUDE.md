@@ -2,6 +2,33 @@
 
 ---
 
+# 현재 상태 (2026-04-15 — 프로덕션 라이브)
+
+- **Live**: https://chatda.life (Cloudflare Tunnel + self-hosted Docker Compose)
+- **Stack**: Next.js 16.2.3 (App Router, standalone) + FastAPI + Postgres 16, 전부 Docker
+- **Auth**: Google OAuth only (NextAuth v5, `trustHost: true`). 비밀번호 없음.
+- **Admin**: `ADMIN_EMAILS` env whitelist (DB role 컬럼 없음) → `/admin` UI
+- **DB**: Postgres 한 인스턴스, DATABASE 분리 — `chatda` (prod) / `chatda_dev` (dev)
+- **Middleware 파일명**: `proxy.ts` (Next.js 16에서 `middleware.ts`에서 리네임됨)
+
+## 반드시 먼저 읽을 문서 (작업 전)
+- [`docs/deploy/architecture.md`](docs/deploy/architecture.md) — 현재 시스템 구조 (포트/컨테이너/DB/CF)
+- [`docs/deploy/runbook.md`](docs/deploy/runbook.md) — 운영 명령 (start/logs/update/rollback/백업)
+- [`docs/deploy/security-followup.md`](docs/deploy/security-followup.md) — 남은 하드닝 backlog
+
+## 포트 맵 (빠른 참조)
+| 서비스 | Dev 호스트 | Prod 호스트 | 컨테이너 |
+|---|---|---|---|
+| Next.js | 3000 (로컬) | **3001** (prod container) | 3000 |
+| Backend | 8001 (로컬 uvicorn) | **8000** (prod container) | 8000 |
+| Postgres | 5434 (공유) | 5434 (공유) | 5432 |
+
+## 절대 건드리지 말 것
+- `chatcity*` — 별개 프로젝트 (같은 터널 공유, 사용자 523명 라이브). `/etc/cloudflared/config.yml`의 chatcity.io / api.chatcity.io(→:8002) / *.chatcity.io ingress 룰 유지.
+- cloudflared 터널 라벨 "chatcity" — locally-managed 터널이라 rename 불가. 그대로 둬.
+
+---
+
 # Secret hygiene — `.env*` 파일은 절대 읽지 마
 
 **금지 사항:**
