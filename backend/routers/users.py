@@ -170,6 +170,48 @@ async def get_public_profile(
 
     show_social = (viewer_id == user_id) or is_connected
 
+    # Events hosted
+    hosted_result = await db.execute(
+        select(Event).where(Event.host_id == user_id).order_by(Event.date.desc())
+    )
+    hosted = [
+        {"id": e.id, "title": e.title, "date": e.date, "area": e.area}
+        for e in hosted_result.scalars().all()
+    ]
+
+    # Events attended (approved RSVPs)
+    attended_result = await db.execute(
+        select(Rsvp, Event)
+        .join(Event, Rsvp.event_id == Event.id)
+        .where(Rsvp.user_id == user_id, Rsvp.status == "approved")
+    )
+    attended_count = len(attended_result.all())
+
+    # Mutual connections (if viewer is logged in)
+    mutual_count = 0
+    if viewer_id and viewer_id != user_id:
+        viewer_conns = (await db.execute(
+            select(Connection).where(
+                sqlalchemy.or_(Connection.requester_id == viewer_id, Connection.recipient_id == viewer_id),
+                Connection.status == "accepted",
+            )
+        )).scalars().all()
+        viewer_connected_ids = set()
+        for c in viewer_conns:
+            viewer_connected_ids.add(c.recipient_id if c.requester_id == viewer_id else c.requester_id)
+
+        target_conns = (await db.execute(
+            select(Connection).where(
+                sqlalchemy.or_(Connection.requester_id == user_id, Connection.recipient_id == user_id),
+                Connection.status == "accepted",
+            )
+        )).scalars().all()
+        target_connected_ids = set()
+        for c in target_conns:
+            target_connected_ids.add(c.recipient_id if c.requester_id == user_id else c.requester_id)
+
+        mutual_count = len(viewer_connected_ids & target_connected_ids)
+
     return {
         "id": user.id,
         "name": user.name,
@@ -178,8 +220,13 @@ async def get_public_profile(
         "bio": user.bio,
         "profile_image": user.profile_image,
         "social_links": [{"platform": l.platform, "url": l.url} for l in links] if show_social else [],
+        "social_platforms": [l.platform for l in links],
         "tags": [{"tag": t.tag, "category": t.category} for t in tags],
         "connection": connection_info,
+        "hosted_events": hosted,
+        "attended_count": attended_count,
+        "mutual_count": mutual_count,
+        "created_at": user.created_at.isoformat() if user.created_at else None,
     }
 
 
