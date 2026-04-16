@@ -51,7 +51,7 @@ export default async function Home() {
           fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,.8)',
           marginBottom: 28, letterSpacing: 0.3,
         }}>
-          cross-cultural network
+          Korea&apos;s International Network
         </div>
 
         <h1 style={{

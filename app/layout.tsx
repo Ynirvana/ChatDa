@@ -10,7 +10,7 @@ const font = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "chatda — cross-cultural network",
+  title: "chatda — Korea's International Network",
   description: "Find your people in Korea. The person you're looking for is already here.",
   manifest: "/manifest.json",
   appleWebApp: {
