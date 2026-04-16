@@ -95,6 +95,7 @@ export interface ApiProfile {
   profile_image: string | null;
   onboarding_complete: boolean;
   social_links: { platform: string; url: string }[];
+  tags: { tag: string; category: 'can_do' | 'looking_for' }[];
   rsvps: {
     rsvp_id: string;
     status: string;

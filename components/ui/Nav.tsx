@@ -65,6 +65,7 @@ export function Nav({ user, isAdmin = false }: { user?: NavUser | null; isAdmin?
         {[
           { href: '/meetups', label: 'Meetups' },
           { href: '/feed', label: 'Feed' },
+          { href: '/people', label: 'People' },
         ].map(({ href, label }) => (
           <Link key={href} href={href} style={{ textDecoration: 'none' }}>
             <Button variant="ghost" style={{

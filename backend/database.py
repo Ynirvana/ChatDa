@@ -141,6 +141,29 @@ class Rsvp(Base):
     created_at = mapped_column(TIMESTAMP, server_default=func.now())
 
 
+_tag_category_enum = SAEnum('can_do', 'looking_for', name='tag_category', create_type=False)
+_connection_status_enum = SAEnum('pending', 'accepted', 'rejected', name='connection_status', create_type=False)
+
+
+class UserTag(Base):
+    __tablename__ = "user_tags"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    user_id: Mapped[str] = mapped_column(String, nullable=False)
+    tag: Mapped[str] = mapped_column(String, nullable=False)
+    category: Mapped[str] = mapped_column(_tag_category_enum, nullable=False)
+
+
+class Connection(Base):
+    __tablename__ = "connections"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    requester_id: Mapped[str] = mapped_column(String, nullable=False)
+    recipient_id: Mapped[str] = mapped_column(String, nullable=False)
+    status: Mapped[str] = mapped_column(_connection_status_enum, default="pending")
+    created_at = mapped_column(TIMESTAMP, server_default=func.now())
+
+
 class BannedEmail(Base):
     __tablename__ = "banned_emails"
 

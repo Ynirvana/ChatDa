@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from jose import jwt, JWTError
 
-from routers import events, rsvp, users, host, feed, memories, admin
+from routers import events, rsvp, users, host, feed, memories, admin, connections
 from settings import settings
 from database import SessionLocal, BannedEmail
 from auth import is_admin_email
@@ -65,6 +65,7 @@ app.include_router(host.router)
 app.include_router(feed.router)
 app.include_router(memories.router)
 app.include_router(admin.router)
+app.include_router(connections.router)
 
 
 @app.get("/health")

@@ -79,6 +79,27 @@ export const eventMemories = pgTable('event_memories', {
   createdAt: timestamp('created_at').notNull().defaultNow(),
 });
 
+// Tags — "what I can do" / "what I'm looking for"
+export const tagCategoryEnum = pgEnum('tag_category', ['can_do', 'looking_for']);
+
+export const userTags = pgTable('user_tags', {
+  id: text('id').primaryKey(),
+  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  tag: text('tag').notNull(),
+  category: tagCategoryEnum('category').notNull(),
+});
+
+// Connections — 1촌 (friend request system)
+export const connectionStatusEnum = pgEnum('connection_status', ['pending', 'accepted', 'rejected']);
+
+export const connections = pgTable('connections', {
+  id: text('id').primaryKey(),
+  requesterId: text('requester_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  recipientId: text('recipient_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  status: connectionStatusEnum('status').notNull().default('pending'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+});
+
 // Banned emails — blocked from signing in (ban is separate from account deletion)
 export const bannedEmails = pgTable('banned_emails', {
   email: text('email').primaryKey(),

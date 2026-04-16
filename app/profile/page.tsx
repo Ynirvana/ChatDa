@@ -8,6 +8,8 @@ import { backendFetch, type ApiProfile } from '@/lib/server-api';
 import { USER_STATUSES } from '@/lib/constants';
 import { formatTime } from '@/lib/utils';
 import { CopyEventLink } from '@/components/CopyEventLink';
+import { TagEditor } from '@/components/TagEditor';
+import { ConnectionRequests } from '@/components/ConnectionRequests';
 
 const platformIcon: Record<string, string> = {
   linkedin: '💼', instagram: '📸', x: '𝕏', tiktok: '🎵',
@@ -107,6 +109,15 @@ export default async function ProfilePage() {
               ))}
             </div>
           )}
+        </Card>
+
+        {/* Connection Requests */}
+        <ConnectionRequests />
+
+        {/* Tags */}
+        <Card style={{ marginBottom: 24, padding: 20 }}>
+          <h2 style={{ fontSize: 18, fontWeight: 900, marginBottom: 14 }}>My Tags</h2>
+          <TagEditor initial={profile.tags ?? []} />
         </Card>
 
         {/* My Meetups (hosted + attending) */}

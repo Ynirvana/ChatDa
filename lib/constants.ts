@@ -24,3 +24,13 @@ export const USER_STATUSES = [
 
 export type PlatformId = typeof PLATFORMS[number]['id'];
 export type UserStatusId = typeof USER_STATUSES[number]['id'];
+
+export const TAGS = [
+  'Photography', 'Modeling', 'Korean Tutoring', 'English Tutoring',
+  'Translation', 'Content Creation', 'Video Editing', 'Graphic Design',
+  'Language Exchange', 'Tour Guide', 'Cooking', 'Music', 'Dance',
+  'Fitness', 'Hair & Makeup', 'Voice Acting', 'Visa Help',
+  'Real Estate', 'Business', 'Travel Buddy',
+] as const;
+
+export type TagCategory = 'can_do' | 'looking_for';
