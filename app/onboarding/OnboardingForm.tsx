@@ -324,11 +324,12 @@ export default function OnboardingForm({
           {/* Social links */}
           <div>
             <label style={labelStyle}>
-              Social media *{' '}
+              Your social link *{' '}
               <span style={{ color: 'rgba(255,255,255,.25)', fontWeight: 400 }}>at least 1</span>
             </label>
             <p style={{ fontSize: 13, color: 'rgba(255,255,255,.35)', marginBottom: 20, lineHeight: 1.5 }}>
-              Shown to other members so they know who's coming.
+              Share the link that best represents you. Networking? Add LinkedIn.
+              Creative work? Try Instagram or TikTok. This helps people decide to connect with you.
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
               {PLATFORMS.map(p => (
