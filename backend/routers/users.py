@@ -134,6 +134,55 @@ async def directory(
     }
 
 
+@router.get("/{user_id}/profile")
+async def get_public_profile(
+    user_id: str,
+    viewer_id: str | None = Depends(optional_user_id),
+    db: AsyncSession = Depends(get_db),
+):
+    """Public profile of a specific user. Social links gated behind connection."""
+    user = await db.get(User, user_id)
+    if not user or not user.onboarding_complete:
+        raise HTTPException(404, "User not found")
+
+    links = (await db.execute(
+        select(SocialLink).where(SocialLink.user_id == user_id)
+    )).scalars().all()
+
+    tags = (await db.execute(
+        select(UserTag).where(UserTag.user_id == user_id)
+    )).scalars().all()
+
+    connection_info = None
+    is_connected = False
+    if viewer_id and viewer_id != user_id:
+        conn = (await db.execute(
+            select(Connection).where(
+                sqlalchemy.or_(
+                    sqlalchemy.and_(Connection.requester_id == viewer_id, Connection.recipient_id == user_id),
+                    sqlalchemy.and_(Connection.requester_id == user_id, Connection.recipient_id == viewer_id),
+                )
+            )
+        )).scalars().first()
+        if conn:
+            connection_info = {"id": conn.id, "status": conn.status}
+            is_connected = conn.status == "accepted"
+
+    show_social = (viewer_id == user_id) or is_connected
+
+    return {
+        "id": user.id,
+        "name": user.name,
+        "nationality": user.nationality,
+        "status": user.status,
+        "bio": user.bio,
+        "profile_image": user.profile_image,
+        "social_links": [{"platform": l.platform, "url": l.url} for l in links] if show_social else [],
+        "tags": [{"tag": t.tag, "category": t.category} for t in tags],
+        "connection": connection_info,
+    }
+
+
 @router.post("/onboarding")
 async def complete_onboarding(
     body: OnboardingBody,

@@ -92,7 +92,8 @@ export function PersonCard({
       e.currentTarget.style.transform = 'translateY(0)';
     }}
     >
-      {/* Photo */}
+      {/* Photo — links to profile detail */}
+      <Link href={`/people/${person.id}`} style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}>
       <div style={{
         position: 'relative',
         width: '100%',
@@ -142,14 +143,17 @@ export function PersonCard({
         )}
       </div>
 
-      {/* Info */}
-      <div style={{ padding: '14px 16px 16px' }}>
-        {/* Name + flag */}
+      {/* Name + flag — part of link */}
+      <div style={{ padding: '14px 16px 0' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
           <span style={{ fontSize: 16 }}>{flag}</span>
           <span style={{ fontSize: 16, fontWeight: 800, color: '#fff' }}>{person.name}</span>
         </div>
+      </div>
+      </Link>
 
+      {/* Info — interactive zone (not inside Link) */}
+      <div style={{ padding: '0 16px 16px' }}>
         {/* Status badge */}
         {statusMeta && (
           <span style={{
