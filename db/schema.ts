@@ -79,6 +79,14 @@ export const eventMemories = pgTable('event_memories', {
   createdAt: timestamp('created_at').notNull().defaultNow(),
 });
 
+// Banned emails — blocked from signing in (ban is separate from account deletion)
+export const bannedEmails = pgTable('banned_emails', {
+  email: text('email').primaryKey(),
+  bannedAt: timestamp('banned_at').notNull().defaultNow(),
+  bannedBy: text('banned_by'),
+  reason: text('reason'),
+});
+
 // RSVP = request to join. Host approves/rejects.
 export const rsvps = pgTable('rsvps', {
   id: text('id').primaryKey(),

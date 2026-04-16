@@ -1,7 +1,7 @@
 import NextAuth from 'next-auth';
 import Google from 'next-auth/providers/google';
 import { db } from '@/db';
-import { users } from '@/db/schema';
+import { users, bannedEmails } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 
@@ -16,6 +16,17 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   callbacks: {
     async signIn({ user, account }) {
       if (account?.provider !== 'google') return false;
+      if (!user.email) return false;
+
+      const email = user.email.toLowerCase();
+
+      // Banned email? Block login before any DB write.
+      const [banned] = await db
+        .select({ email: bannedEmails.email })
+        .from(bannedEmails)
+        .where(eq(bannedEmails.email, email))
+        .limit(1);
+      if (banned) return false;
 
       const existing = await db
         .select()

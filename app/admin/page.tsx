@@ -53,14 +53,26 @@ interface Overview {
   }[];
 }
 
+interface BansPayload {
+  bans: {
+    email: string;
+    banned_at: string | null;
+    banned_by: string | null;
+    reason: string | null;
+  }[];
+}
+
 export default async function AdminPage() {
   const session = await auth();
   if (!session?.user?.id) redirect('/login');
   if (!isAdminEmail(session.user.email)) redirect('/');
 
   let data: Overview;
+  let bans: BansPayload['bans'] = [];
   try {
     data = await backendFetch<Overview>('/admin/overview');
+    const bansRes = await backendFetch<BansPayload>('/admin/bans').catch(() => ({ bans: [] } as BansPayload));
+    bans = bansRes.bans;
   } catch (e) {
     return (
       <div className="page-bg" style={{ minHeight: '100vh' }}>
@@ -83,7 +95,7 @@ export default async function AdminPage() {
   return (
     <div className="page-bg" style={{ minHeight: '100vh' }}>
       <Nav user={session.user} />
-      <AdminClient data={data} />
+      <AdminClient data={data} bans={bans} />
     </div>
   );
 }

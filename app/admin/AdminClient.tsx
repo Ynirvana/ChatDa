@@ -11,9 +11,16 @@ interface Overview {
   events: { id: string; title: string; date: string; area: string | null; host_id: string | null; capacity: number }[];
 }
 
-type Tab = 'posts' | 'comments' | 'memories' | 'users' | 'events';
+interface BanEntry {
+  email: string;
+  banned_at: string | null;
+  banned_by: string | null;
+  reason: string | null;
+}
 
-export default function AdminClient({ data }: { data: Overview }) {
+type Tab = 'posts' | 'comments' | 'memories' | 'users' | 'events' | 'banned';
+
+export default function AdminClient({ data, bans }: { data: Overview; bans: BanEntry[] }) {
   const router = useRouter();
   const [tab, setTab] = useState<Tab>('posts');
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -24,13 +31,98 @@ export default function AdminClient({ data }: { data: Overview }) {
     try {
       const res = await fetch(url, { method: 'DELETE' });
       if (!res.ok) {
-        const err = await res.json().catch(() => ({})) as { error?: string };
-        alert(`삭제 실패: ${err.error ?? res.status}`);
+        const err = await res.json().catch(() => ({})) as { error?: string; detail?: string };
+        alert(`실패: ${err.error ?? err.detail ?? res.status}`);
         return;
       }
       router.refresh();
     } catch (e) {
-      alert(`삭제 실패: ${(e as Error).message}`);
+      alert(`실패: ${(e as Error).message}`);
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const banUser = async (email: string, userId: string) => {
+    const reason = prompt(`${email} 밴 사유 (선택, Enter로 스킵):`);
+    if (reason === null) return;  // cancel
+    setBusyId(userId);
+    try {
+      const res = await fetch('/api/admin/bans', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, reason: reason || undefined }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({})) as { error?: string; detail?: string };
+        alert(`밴 실패: ${err.error ?? err.detail ?? res.status}`);
+        return;
+      }
+      alert(`${email} 밴 완료. 이 이메일로 재로그인 시도해도 차단됨.`);
+      router.refresh();
+    } catch (e) {
+      alert(`밴 실패: ${(e as Error).message}`);
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const deleteAccount = async (userId: string, email: string) => {
+    const alsoBan = confirm(
+      `⚠️ ${email} 계정 삭제?\n` +
+      `→ 본인 게시글/댓글/RSVP/주최 이벤트 전부 cascade 삭제됨.\n\n` +
+      `[OK] 삭제 + 이메일도 밴 (권장)\n` +
+      `[Cancel] 아예 취소\n\n` +
+      `※ 삭제만 하고 밴은 안 하려면 취소 후 "Delete Only" 버튼을 쓰세요.`,
+    );
+    if (!alsoBan) return;
+    setBusyId(userId);
+    try {
+      const res = await fetch(`/api/admin/users/${userId}?also_ban=true`, { method: 'DELETE' });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({})) as { error?: string; detail?: string };
+        alert(`실패: ${err.error ?? err.detail ?? res.status}`);
+        return;
+      }
+      router.refresh();
+    } catch (e) {
+      alert(`실패: ${(e as Error).message}`);
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const deleteAccountOnly = async (userId: string, email: string) => {
+    if (!confirm(`${email} 계정 삭제 (밴 없이)?\n→ 같은 Google 계정으로 재로그인하면 새 유저로 복귀 가능.`)) return;
+    setBusyId(userId);
+    try {
+      const res = await fetch(`/api/admin/users/${userId}?also_ban=false`, { method: 'DELETE' });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({})) as { error?: string; detail?: string };
+        alert(`실패: ${err.error ?? err.detail ?? res.status}`);
+        return;
+      }
+      router.refresh();
+    } catch (e) {
+      alert(`실패: ${(e as Error).message}`);
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const unban = async (email: string) => {
+    if (!confirm(`${email} 밴 해제?`)) return;
+    setBusyId(email);
+    try {
+      const res = await fetch(`/api/admin/bans/${encodeURIComponent(email)}`, { method: 'DELETE' });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({})) as { error?: string; detail?: string };
+        alert(`실패: ${err.error ?? err.detail ?? res.status}`);
+        return;
+      }
+      router.refresh();
+    } catch (e) {
+      alert(`실패: ${(e as Error).message}`);
     } finally {
       setBusyId(null);
     }
@@ -42,13 +134,14 @@ export default function AdminClient({ data }: { data: Overview }) {
     { key: 'memories', label: 'Memories', count: data.memories.length },
     { key: 'users', label: 'Users', count: data.users.length },
     { key: 'events', label: 'Events', count: data.events.length },
+    { key: 'banned', label: 'Banned', count: bans.length },
   ];
 
   return (
     <div style={{ maxWidth: 1000, margin: '0 auto', padding: '40px 24px 80px' }}>
       <h1 style={{ fontSize: 28, fontWeight: 900, letterSpacing: -1, marginBottom: 6 }}>Admin</h1>
       <p style={{ fontSize: 14, color: 'rgba(255,255,255,.45)', marginBottom: 24 }}>
-        최근 50개씩 표시. 삭제는 즉시 반영되며 되돌릴 수 없음.
+        최근 50개씩 표시. 모든 삭제는 즉시 반영, 되돌릴 수 없음. Ban은 Banned 탭에서 Unban 가능.
       </p>
 
       <div style={{ display: 'flex', gap: 6, marginBottom: 20, flexWrap: 'wrap' }}>
@@ -77,9 +170,10 @@ export default function AdminClient({ data }: { data: Overview }) {
                 <Meta>{p.user_name} · {p.user_email} · {fmt(p.created_at)}</Meta>
                 <Body>{p.content}</Body>
               </div>
-              <DeleteBtn
+              <ActionBtn
                 busy={busyId === p.id}
                 onClick={() => doDelete(`/api/feed/posts/${p.id}`, p.id, `게시글 삭제?\n"${p.content.slice(0, 60)}..."`)}
+                label="Delete"
               />
             </Row>
           ))}
@@ -95,9 +189,10 @@ export default function AdminClient({ data }: { data: Overview }) {
                 <Meta>{c.user_name} · {c.user_email} · on post {c.post_id.slice(0, 8)} · {fmt(c.created_at)}</Meta>
                 <Body>{c.content}</Body>
               </div>
-              <DeleteBtn
+              <ActionBtn
                 busy={busyId === c.id}
                 onClick={() => doDelete(`/api/feed/comments/${c.id}`, c.id, `댓글 삭제?`)}
+                label="Delete"
               />
             </Row>
           ))}
@@ -113,9 +208,10 @@ export default function AdminClient({ data }: { data: Overview }) {
                 <Meta>{m.user_name} · {m.user_email} · in {m.event_title} · {fmt(m.created_at)}</Meta>
                 <Body>{m.content || <span style={{ color: 'rgba(255,255,255,.3)' }}>(사진만)</span>}</Body>
               </div>
-              <DeleteBtn
+              <ActionBtn
                 busy={busyId === m.id}
                 onClick={() => doDelete(`/api/memories/${m.id}`, m.id, `메모리 삭제?`)}
+                label="Delete"
               />
             </Row>
           ))}
@@ -131,15 +227,26 @@ export default function AdminClient({ data }: { data: Overview }) {
                 <Meta>{u.email} · {u.nationality ?? '(국적 없음)'} · {u.onboarding_complete ? 'onboarded' : 'pending'} · {fmt(u.created_at)}</Meta>
                 <Body>{u.name}</Body>
               </div>
-              <DeleteBtn
-                busy={busyId === u.id}
-                label="Ban"
-                onClick={() => doDelete(
-                  `/api/admin/users/${u.id}`,
-                  u.id,
-                  `⚠️ 유저 ${u.email} 밴?\n본인 게시글/댓글/RSVP/주최 이벤트 전부 cascade 삭제됨. 되돌릴 수 없음.`,
-                )}
-              />
+              <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                <ActionBtn
+                  busy={busyId === u.id}
+                  onClick={() => banUser(u.email, u.id)}
+                  label="Ban"
+                  color="#FFC107"
+                />
+                <ActionBtn
+                  busy={busyId === u.id}
+                  onClick={() => deleteAccount(u.id, u.email)}
+                  label="Delete + Ban"
+                  color="rgba(255,107,53,.85)"
+                />
+                <ActionBtn
+                  busy={busyId === u.id}
+                  onClick={() => deleteAccountOnly(u.id, u.email)}
+                  label="Delete Only"
+                  color="rgba(255,255,255,.15)"
+                />
+              </div>
             </Row>
           ))}
         </Section>
@@ -154,13 +261,34 @@ export default function AdminClient({ data }: { data: Overview }) {
                 <Meta>{e.date} · {e.area ?? '지역 없음'} · capacity {e.capacity} · host {e.host_id?.slice(0, 8) ?? 'none'}</Meta>
                 <Body>{e.title}</Body>
               </div>
-              <DeleteBtn
+              <ActionBtn
                 busy={busyId === e.id}
                 onClick={() => doDelete(
                   `/api/admin/events/${e.id}`,
                   e.id,
                   `이벤트 "${e.title}" 삭제?\nRSVP/Memories cascade 삭제됨.`,
                 )}
+                label="Delete"
+              />
+            </Row>
+          ))}
+        </Section>
+      )}
+
+      {tab === 'banned' && (
+        <Section>
+          {bans.length === 0 && <EmptyRow text="밴 목록 비어있음" />}
+          {bans.map(b => (
+            <Row key={b.email}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <Meta>banned {fmt(b.banned_at)} {b.banned_by ? `· by ${b.banned_by}` : ''}</Meta>
+                <Body>{b.email}{b.reason ? ` — ${b.reason}` : ''}</Body>
+              </div>
+              <ActionBtn
+                busy={busyId === b.email}
+                onClick={() => unban(b.email)}
+                label="Unban"
+                color="rgba(0,184,148,.85)"
               />
             </Row>
           ))}
@@ -217,15 +345,25 @@ function Body({ children }: { children: React.ReactNode }) {
   );
 }
 
-function DeleteBtn({ onClick, busy, label = 'Delete' }: { onClick: () => void; busy: boolean; label?: string }) {
+function ActionBtn({
+  onClick,
+  busy,
+  label,
+  color = 'rgba(255,107,53,.8)',
+}: {
+  onClick: () => void;
+  busy: boolean;
+  label: string;
+  color?: string;
+}) {
   return (
     <button
       onClick={onClick}
       disabled={busy}
       style={{
-        flexShrink: 0, padding: '6px 14px', borderRadius: 999, fontSize: 12, fontWeight: 700,
-        background: busy ? 'rgba(255,107,53,.2)' : 'rgba(255,107,53,.8)',
-        color: '#fff', border: 'none', cursor: busy ? 'wait' : 'pointer',
+        flexShrink: 0, padding: '6px 12px', borderRadius: 999, fontSize: 12, fontWeight: 700,
+        background: busy ? 'rgba(255,255,255,.1)' : color,
+        color: '#fff', border: 'none', cursor: busy ? 'wait' : 'pointer', whiteSpace: 'nowrap',
       }}
     >
       {busy ? '...' : label}

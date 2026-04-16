@@ -139,3 +139,12 @@ class Rsvp(Base):
     status: Mapped[str] = mapped_column(_rsvp_status_enum, default="pending")
     message: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at = mapped_column(TIMESTAMP, server_default=func.now())
+
+
+class BannedEmail(Base):
+    __tablename__ = "banned_emails"
+
+    email: Mapped[str] = mapped_column(String, primary_key=True)
+    banned_at = mapped_column(TIMESTAMP, server_default=func.now())
+    banned_by: Mapped[str | None] = mapped_column(String, nullable=True)
+    reason: Mapped[str | None] = mapped_column(Text, nullable=True)

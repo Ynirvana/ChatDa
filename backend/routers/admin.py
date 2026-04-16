@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, desc, delete
 
@@ -12,8 +13,9 @@ from database import (
     PostLike,
     PostComment,
     EventMemory,
+    BannedEmail,
 )
-from auth import require_admin
+from auth import require_admin, is_admin_email
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -126,13 +128,19 @@ async def overview(
 @router.delete("/users/{user_id}")
 async def delete_user_cascade(
     user_id: str,
-    _: str = Depends(require_admin),
+    also_ban: bool = True,
+    admin_email: str = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ):
-    """Delete a user and cascade all their content + hosted events."""
+    """Delete a user and cascade all their content + hosted events.
+    If also_ban=true (default), the user's email is added to banned_emails
+    so they cannot re-register. Admin emails are never banned.
+    """
     user = await db.get(User, user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
+
+    user_email = user.email
 
     # Hosted event IDs (their rsvps/memories also need cleanup)
     hosted_ids = (
@@ -164,9 +172,85 @@ async def delete_user_cascade(
         await db.execute(delete(Event).where(Event.host_id == user_id))
     await db.execute(delete(SocialLink).where(SocialLink.user_id == user_id))
     await db.delete(user)
+
+    banned = False
+    if also_ban and user_email and not is_admin_email(user_email):
+        existing = await db.get(BannedEmail, user_email)
+        if not existing:
+            db.add(BannedEmail(email=user_email, banned_by=admin_email, reason="account deleted"))
+            banned = True
+
     await db.commit()
 
-    return {"ok": True, "deleted_user": user_id, "hosted_events_removed": len(hosted_ids)}
+    return {
+        "ok": True,
+        "deleted_user": user_id,
+        "hosted_events_removed": len(hosted_ids),
+        "banned": banned,
+    }
+
+
+# ── Ban management ─────────────────────────────────────────────────────────
+
+
+class BanRequest(BaseModel):
+    email: str
+    reason: str | None = None
+
+
+@router.post("/bans", status_code=201)
+async def create_ban(
+    payload: BanRequest,
+    admin_email: str = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Block this email from signing in. Existing sessions get 403 on next API call."""
+    email = payload.email.strip().lower()
+    if not email or "@" not in email:
+        raise HTTPException(status_code=400, detail="Invalid email")
+    if is_admin_email(email):
+        raise HTTPException(status_code=400, detail="Cannot ban an admin email")
+
+    existing = await db.get(BannedEmail, email)
+    if existing:
+        return {"ok": True, "email": email, "already_banned": True}
+
+    db.add(BannedEmail(email=email, banned_by=admin_email, reason=payload.reason))
+    await db.commit()
+    return {"ok": True, "email": email, "banned_by": admin_email}
+
+
+@router.get("/bans")
+async def list_bans(
+    _: str = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    rows = (await db.execute(select(BannedEmail).order_by(desc(BannedEmail.banned_at)))).scalars().all()
+    return {
+        "bans": [
+            {
+                "email": b.email,
+                "banned_at": b.banned_at.isoformat() if b.banned_at else None,
+                "banned_by": b.banned_by,
+                "reason": b.reason,
+            }
+            for b in rows
+        ]
+    }
+
+
+@router.delete("/bans/{email}")
+async def delete_ban(
+    email: str,
+    _: str = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    row = await db.get(BannedEmail, email.strip().lower())
+    if not row:
+        raise HTTPException(status_code=404, detail="Not banned")
+    await db.delete(row)
+    await db.commit()
+    return {"ok": True, "unbanned": email}
 
 
 @router.delete("/events/{event_id}")

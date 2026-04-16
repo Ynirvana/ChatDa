@@ -8,5 +8,6 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
     return Response.json({ error: 'Forbidden' }, { status: 403 });
   }
   const { id } = await params;
-  return proxyToBackend(req, `/admin/users/${id}`, 'DELETE');
+  const alsoBan = new URL(req.url).searchParams.get('also_ban') ?? 'true';
+  return proxyToBackend(req, `/admin/users/${id}?also_ban=${alsoBan}`, 'DELETE');
 }

@@ -85,6 +85,13 @@
       "when": 1776168165850,
       "tag": "0011_little_marten_broadcloak",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1776300955424,
+      "tag": "0012_heavy_harry_osborn",
+      "breakpoints": true
     }
   ]
 }
