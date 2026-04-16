@@ -1,5 +1,4 @@
 import type { NextConfig } from 'next';
-import withPWA from '@ducanh2912/next-pwa';
 
 const securityHeaders = [
   { key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains; preload' },
@@ -11,16 +10,13 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   output: 'standalone',
-  turbopack: {}, // Next.js 16 default; silences webpack/turbopack conflict warning from next-pwa
   async headers() {
-    return [{ source: '/:path*', headers: securityHeaders }];
+    return [
+      { source: '/:path*', headers: securityHeaders },
+      // Service worker must be served from root scope with no caching
+      { source: '/sw.js', headers: [{ key: 'Cache-Control', value: 'public, max-age=0, must-revalidate' }] },
+    ];
   },
 };
 
-export default withPWA({
-  dest: 'public',
-  cacheOnFrontEndNav: true,
-  aggressiveFrontEndNavCaching: true,
-  reloadOnOnline: true,
-  disable: process.env.NODE_ENV === 'development',
-})(nextConfig);
+export default nextConfig;

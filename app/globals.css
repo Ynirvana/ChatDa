@@ -113,7 +113,11 @@ select option {
 /* Page background with gradient */
 .page-bg {
   min-height: 100vh;
+  min-height: 100dvh;
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+  padding-bottom: env(safe-area-inset-bottom);
   background: linear-gradient(165deg, #1a1033 0%, #2d1b4e 30%, #1a1033 60%, #0f1923 100%);
   position: relative;
-  overflow: hidden;
+  overflow-x: hidden;
 }

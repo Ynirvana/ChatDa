@@ -59,7 +59,7 @@ chatda-db-1 (Postgres 16-alpine, Docker, 볼륨 postgres_data)
 
 ### `chatda-backend` (prod FastAPI)
 - **이미지**: `chatda-backend:prod`
-- **CMD**: `uvicorn main:app --host 0.0.0.0 --port 8000`
+- **CMD**: `uvicorn main:app --host 0.0.0.0 --port 8000 --workers 2`
 - **포트 매핑**: `8000:8000`
 - **env_file**: `backend/.env.production`
 - **override env**: `DATABASE_URL=postgresql+asyncpg://chatda:chatda@db:5432/chatda`
@@ -232,5 +232,18 @@ Backend 공통: `DATABASE_URL`, `NEXTAUTH_SECRET`
 ## Next.js 설정 포인트
 
 - `next.config.ts`: `output: 'standalone'` (Docker 이미지 최소화)
-- `@ducanh2912/next-pwa` 사용, dev에선 disabled
 - Next.js **16.2.3** — middleware.ts → **proxy.ts**로 파일명 변경됨 (NextAuth 인증 처리)
+
+---
+
+## PWA (Progressive Web App)
+
+**구현 방식:** 자작 Service Worker (서드파티 빌드 플러그인 없음)
+- `@ducanh2912/next-pwa`는 Next.js 16 turbopack 환경에서 sw.js 생성 실패 → 2026-04-16에 제거하고 수동 구현으로 전환
+- `public/sw.js` — HTML network-first / static cache-first / `/api/*` · `/admin/*` · RSC payload 바이패스
+- `public/offline.html` — 오프라인 폴백 (SW 설치 시 precache)
+- `components/ServiceWorkerRegistration.tsx` — 클라이언트 등록 훅. `?kill-sw=1` 쿼리로 SW 해제 + 캐시 전체 삭제
+- `app/layout.tsx`에서 `<ServiceWorkerRegistration />` 렌더 → `window.load` 이후 등록
+- `next.config.ts`에서 `/sw.js`는 `Cache-Control: max-age=0, must-revalidate` 강제 (SW 자체 업데이트 즉시 반영)
+- **캐시 버전 관리:** `sw.js`의 `CACHE_VERSION` 상수 변경 → activate 시 이전 캐시 자동 청소
+- **Kill switch:** SW 버그 시 `https://chatda.life/?kill-sw=1` 한 번 접속으로 사용자 브라우저에서 SW 해제

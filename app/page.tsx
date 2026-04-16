@@ -51,7 +51,7 @@ export default async function Home() {
           fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,.8)',
           marginBottom: 28, letterSpacing: 0.3,
         }}>
-          Meetups for foreigners in Korea
+          cross-cultural network
         </div>
 
         <h1 style={{
@@ -62,9 +62,7 @@ export default async function Home() {
           WebkitBackgroundClip: 'text',
           WebkitTextFillColor: 'transparent',
         }}>
-          {"See who's at the table"}
-          <br />
-          before you sit down.
+          Find your people in Korea
         </h1>
 
         <p style={{
@@ -73,7 +71,7 @@ export default async function Home() {
           maxWidth: 480, margin: '0 auto 40px',
           lineHeight: 1.6,
         }}>
-          Real profiles. Real plans. No surprises.
+          The person you&apos;re looking for is already here
         </p>
 
         <Link href="/meetups" style={{ textDecoration: 'none' }}>

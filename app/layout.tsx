@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
+import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
 
 const font = Plus_Jakarta_Sans({
   subsets: ["latin"],
@@ -9,8 +10,8 @@ const font = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "chatda — meetups for foreigners in Korea",
-  description: "Social meetups where you can see who's coming before you join.",
+  title: "chatda — cross-cultural network",
+  description: "Find your people in Korea. The person you're looking for is already here.",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
@@ -41,7 +42,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${font.variable} h-full antialiased`}>
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        {children}
+        <ServiceWorkerRegistration />
+      </body>
     </html>
   );
 }
