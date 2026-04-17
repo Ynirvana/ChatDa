@@ -21,14 +21,14 @@ const CATEGORIES: {
   {
     id: 'can_do',
     title: 'I can help with',
-    color: '#00B894',
+    color: '#00957A',
     emptyCopy: 'Nothing yet — add what you can offer',
     addMoreCopy: 'Add what you can offer',
   },
   {
     id: 'looking_for',
     title: "I'm looking for",
-    color: '#74B9FF',
+    color: '#3E82CB',
     emptyCopy: 'Nothing yet — add what you need',
     addMoreCopy: "Add what you're looking for",
   },
@@ -80,14 +80,13 @@ export function TagEditor({ initial }: { initial: Tag[] }) {
 
         return (
           <div key={cat.id} style={{ marginBottom: 20 }}>
-            <p style={{ fontSize: 13, fontWeight: 800, color: cat.color, marginBottom: 10 }}>
+            <p style={{ fontSize: 13, fontWeight: 800, color: cat.color, marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.5 }}>
               {cat.title}
             </p>
 
-            {/* 선택된 태그 — 진한 fill + × 제거 */}
             {selected.length === 0 ? (
               <p style={{
-                fontSize: 13, color: 'rgba(255,255,255,.3)',
+                fontSize: 13, color: 'rgba(45, 24, 16, .45)',
                 fontStyle: 'italic', marginBottom: 10,
               }}>
                 {cat.emptyCopy}
@@ -126,7 +125,6 @@ export function TagEditor({ initial }: { initial: Tag[] }) {
               </div>
             )}
 
-            {/* Add more — 접이식 */}
             {available.length > 0 && (
               <>
                 <button
@@ -140,7 +138,7 @@ export function TagEditor({ initial }: { initial: Tag[] }) {
                     fontFamily: 'inherit',
                     cursor: 'pointer',
                     background: 'transparent',
-                    border: `1.5px dashed ${cat.color}55`,
+                    border: `1.5px dashed ${cat.color}77`,
                     color: cat.color,
                     display: 'inline-flex',
                     alignItems: 'center',
@@ -160,9 +158,9 @@ export function TagEditor({ initial }: { initial: Tag[] }) {
                     display: 'flex', flexWrap: 'wrap', gap: 6,
                     marginTop: 10,
                     padding: 12,
-                    background: 'rgba(255,255,255,.03)',
+                    background: `${cat.color}0A`,
                     borderRadius: 12,
-                    border: `1px dashed ${cat.color}22`,
+                    border: `1px dashed ${cat.color}33`,
                   }}>
                     {available.map(t => (
                       <button
@@ -176,9 +174,9 @@ export function TagEditor({ initial }: { initial: Tag[] }) {
                           fontWeight: 600,
                           fontFamily: 'inherit',
                           cursor: 'pointer',
-                          border: '1px solid rgba(255,255,255,.15)',
-                          background: 'transparent',
-                          color: 'rgba(255,255,255,.6)',
+                          border: '1px solid rgba(45, 24, 16, .18)',
+                          background: '#FFFFFF',
+                          color: '#3D2416',
                           transition: 'all .15s',
                         }}
                         onMouseEnter={e => {
@@ -186,8 +184,8 @@ export function TagEditor({ initial }: { initial: Tag[] }) {
                           e.currentTarget.style.color = cat.color;
                         }}
                         onMouseLeave={e => {
-                          e.currentTarget.style.borderColor = 'rgba(255,255,255,.15)';
-                          e.currentTarget.style.color = 'rgba(255,255,255,.6)';
+                          e.currentTarget.style.borderColor = 'rgba(45, 24, 16, .18)';
+                          e.currentTarget.style.color = '#3D2416';
                         }}
                       >
                         + {t}
@@ -207,11 +205,12 @@ export function TagEditor({ initial }: { initial: Tag[] }) {
           disabled={saving}
           style={{
             marginTop: 8,
-            padding: '10px 28px', borderRadius: 999, border: 'none',
-            fontSize: 14, fontWeight: 700, cursor: saving ? 'wait' : 'pointer',
-            background: 'linear-gradient(135deg, #FF6B35, #E84393)',
+            padding: '12px 28px', borderRadius: 999, border: 'none',
+            fontSize: 14, fontWeight: 800, cursor: saving ? 'wait' : 'pointer',
+            background: 'linear-gradient(135deg, #FF6B5B, #E84393)',
             color: '#fff',
             fontFamily: 'inherit',
+            boxShadow: '0 4px 14px rgba(255, 107, 91, .3)',
           }}
         >
           {saving ? 'Saving...' : 'Save Tags'}

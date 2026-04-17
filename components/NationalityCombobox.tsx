@@ -3,26 +3,16 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { NATIONALITIES } from '@/lib/nationalities';
 
-const inputStyle: React.CSSProperties = {
-  width: '100%',
-  background: 'rgba(255,255,255,.08)',
-  border: '1.5px solid rgba(255,255,255,.12)',
-  borderRadius: 12,
-  color: '#ffffff',
-  padding: '14px 18px',
-  fontSize: 15,
-  outline: 'none',
-  fontFamily: 'inherit',
-};
-
 export function NationalityCombobox({
   value,
   onChange,
   placeholder = 'Type to search your nationality',
+  light = true,
 }: {
   value: string;
   onChange: (next: string) => void;
   placeholder?: string;
+  light?: boolean;
 }) {
   const [query, setQuery] = useState(value);
   const [open, setOpen] = useState(false);
@@ -35,7 +25,6 @@ export function NationalityCombobox({
     setQuery(value);
   }, [value]);
 
-  // 외부 클릭으로 닫기
   useEffect(() => {
     if (!open) return;
     const onDocClick = (e: MouseEvent) => {
@@ -53,7 +42,6 @@ export function NationalityCombobox({
     return (NATIONALITIES as readonly string[]).filter(n => n.toLowerCase().includes(q));
   }, [query]);
 
-  // filter 결과 변경 시 active 인덱스 초기화
   useEffect(() => {
     setActiveIdx(0);
   }, [query]);
@@ -82,7 +70,6 @@ export function NationalityCombobox({
     }
   };
 
-  // 활성 항목 스크롤
   useEffect(() => {
     if (!open || !listRef.current) return;
     const el = listRef.current.querySelector<HTMLLIElement>(`[data-idx="${activeIdx}"]`);
@@ -91,18 +78,42 @@ export function NationalityCombobox({
 
   const isExactMatch = (NATIONALITIES as readonly string[]).includes(query);
 
+  // Theme-aware 색상
+  const inputBg = light ? '#FFFFFF' : 'rgba(255,255,255,.08)';
+  const inputBorder = light ? 'rgba(45, 24, 16, .18)' : 'rgba(255,255,255,.12)';
+  const inputBorderFocus = light ? '#FF6B5B' : '#FF6B35';
+  const inputText = light ? '#2D1810' : '#ffffff';
+  const inputShadow = light ? '0 2px 8px rgba(45, 24, 16, .06)' : 'none';
+
+  const popupBg = light ? '#FFFFFF' : '#2d1b4e';
+  const popupBorder = light ? 'rgba(45, 24, 16, .12)' : 'rgba(255,255,255,.15)';
+  const popupShadow = light ? '0 12px 40px rgba(45, 24, 16, .14)' : '0 8px 32px rgba(0,0,0,.4)';
+  const itemText = light ? '#2D1810' : '#fff';
+  const itemSelectedColor = light ? '#FF6B5B' : '#FF6B35';
+  const itemActiveBg = light ? 'rgba(255, 107, 91, .1)' : 'rgba(255,107,53,.12)';
+  const emptyText = light ? 'rgba(45, 24, 16, .5)' : 'rgba(255,255,255,.4)';
+
   return (
     <div ref={rootRef} style={{ position: 'relative' }}>
       <input
         type="text"
+        className={light ? 'input-light' : undefined}
         role="combobox"
         aria-expanded={open}
         aria-controls={listboxId}
         aria-autocomplete="list"
         aria-activedescendant={open ? `nat-opt-${activeIdx}` : undefined}
         style={{
-          ...inputStyle,
-          borderColor: isExactMatch ? '#FF6B35' : 'rgba(255,255,255,.12)',
+          width: '100%',
+          background: inputBg,
+          border: `1.5px solid ${isExactMatch ? inputBorderFocus : inputBorder}`,
+          borderRadius: 12,
+          color: inputText,
+          padding: '14px 18px',
+          fontSize: 15,
+          outline: 'none',
+          fontFamily: 'inherit',
+          boxShadow: inputShadow,
         }}
         value={query}
         placeholder={placeholder}
@@ -110,7 +121,6 @@ export function NationalityCombobox({
         onChange={e => {
           setQuery(e.target.value);
           setOpen(true);
-          // 중간 입력은 아직 선택 아님 — 빈 값으로 확정
           if (e.target.value === '') onChange('');
         }}
         onKeyDown={onKeyDown}
@@ -133,14 +143,14 @@ export function NationalityCombobox({
             margin: 0,
             padding: '6px 0',
             listStyle: 'none',
-            background: '#2d1b4e',
-            border: '1.5px solid rgba(255,255,255,.15)',
+            background: popupBg,
+            border: `1.5px solid ${popupBorder}`,
             borderRadius: 12,
-            boxShadow: '0 8px 32px rgba(0,0,0,.4)',
+            boxShadow: popupShadow,
           }}
         >
           {filtered.length === 0 && (
-            <li style={{ padding: '10px 16px', fontSize: 13, color: 'rgba(255,255,255,.4)' }}>
+            <li style={{ padding: '10px 16px', fontSize: 13, color: emptyText }}>
               No match. Pick &quot;Other&quot;.
             </li>
           )}
@@ -162,9 +172,9 @@ export function NationalityCombobox({
                 style={{
                   padding: '10px 16px',
                   fontSize: 14,
-                  color: selected ? '#FF6B35' : '#fff',
+                  color: selected ? itemSelectedColor : itemText,
                   fontWeight: selected ? 700 : 500,
-                  background: active ? 'rgba(255,107,53,.12)' : 'transparent',
+                  background: active ? itemActiveBg : 'transparent',
                   cursor: 'pointer',
                 }}
               >

@@ -1,144 +1,109 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { Orb, Card } from '@/components/ui/Card';
+import { Orb } from '@/components/ui/Card';
 import { Nav } from '@/components/ui/Nav';
-import { Button } from '@/components/ui/Button';
-import { AttendeeCard, type Attendee } from '@/components/AttendeeCard';
 import { auth } from '@/lib/auth';
 import { isAdminEmail } from '@/lib/admin';
-import { backendFetch, type ApiEventSummary, type ApiEventDetail } from '@/lib/server-api';
-
-export const revalidate = 60;
 
 export default async function Home() {
   const session = await auth();
 
-  // 로그인 유저는 People 탭으로 바로 이동. 비로그인은 랜딩 노출.
   if (session?.user?.id) redirect('/people');
 
-  const events = await backendFetch<ApiEventSummary[]>('/events').catch(() => [] as ApiEventSummary[]);
-  const featuredRaw = events[0] ?? null;
-
-  let detail: ApiEventDetail | null = null;
-  if (featuredRaw) {
-    detail = await backendFetch<ApiEventDetail>(`/events/${featuredRaw.id}`).catch(() => null);
-  }
-
-  const attendees: Attendee[] = (detail?.attendees.slice(0, 4) ?? []).map(a => ({
-    id: a.id,
-    name: a.name,
-    nationality: a.nationality,
-    bio: a.bio,
-    profileImage: a.profile_image,
-    socialLinks: a.social_links,
-  }));
-
-  const approvedCount = detail?.approved_count ?? 0;
-
   return (
-    <div className="page-bg">
-      <Nav user={session?.user} isAdmin={isAdminEmail(session?.user?.email)} />
+    <div className="page-bg-light">
+      <Nav user={session?.user} isAdmin={isAdminEmail(session?.user?.email)} light />
 
-      <Orb size={600} color="rgba(108,92,231,.3)" top={-100} left={-200} />
-      <Orb size={400} color="rgba(232,67,147,.25)" top={200} right={-100} delay={2} />
+      {/* Sunset orbs — 크림 베이스 위 워터컬러 같은 웜 톤 */}
+      <Orb size={640} color="rgba(255, 140, 120, .22)" top={-140} left={-220} />
+      <Orb size={440} color="rgba(232, 67, 147, .14)" top={180} right={-120} delay={2} />
+      <Orb size={380} color="rgba(255, 196, 140, .20)" bottom={-80} left={80} delay={4} />
 
       {/* Hero */}
       <section style={{
         position: 'relative', zIndex: 1,
         textAlign: 'center',
-        padding: '100px 20px 60px',
+        padding: '110px 20px 140px',
+        maxWidth: 640, margin: '0 auto',
       }}>
+        {/* Tag pill — 엘리베이티드 글래스 + 코랄 라이브 닷 */}
         <div style={{
-          display: 'inline-block',
-          padding: '6px 16px', borderRadius: 999,
-          background: 'rgba(255,255,255,.1)', backdropFilter: 'blur(10px)',
-          fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,.8)',
-          marginBottom: 28, letterSpacing: 0.3,
+          display: 'inline-flex', alignItems: 'center', gap: 8,
+          padding: '8px 18px', borderRadius: 999,
+          background: 'rgba(255, 255, 255, .88)',
+          border: '1px solid rgba(255, 107, 91, .18)',
+          backdropFilter: 'blur(10px)',
+          boxShadow: '0 2px 10px rgba(45, 24, 16, .05)',
+          fontSize: 13, fontWeight: 700, color: '#5C3E36',
+          marginBottom: 36, letterSpacing: 0.3,
         }}>
+          <span style={{
+            width: 6, height: 6, borderRadius: '50%',
+            background: '#FF6B5B',
+            boxShadow: '0 0 0 3px rgba(255, 107, 91, .18)',
+          }} />
           Korea&apos;s cross-cultural network
         </div>
 
         <h1 style={{
-          fontSize: 'clamp(2rem, 5vw, 3.75rem)',
-          fontWeight: 900, letterSpacing: -2, lineHeight: 1.1,
-          marginBottom: 20,
-          background: 'linear-gradient(135deg, #FF6B35, #E84393, #6C5CE7)',
+          fontSize: 'clamp(2.5rem, 6vw, 4.25rem)',
+          fontWeight: 900,
+          letterSpacing: '-0.04em',
+          lineHeight: 1.05,
+          marginBottom: 28,
+          background: 'linear-gradient(135deg, #FF6B5B 0%, #E84393 55%, #6C5CE7 100%)',
           WebkitBackgroundClip: 'text',
           WebkitTextFillColor: 'transparent',
+          // 크림 배경 위 텍스트에 미묘한 lift
+          filter: 'drop-shadow(0 1px 0 rgba(255, 255, 255, .5))',
         }}>
-          See who else is here in Korea.
+          See who else is<br />here in Korea.
         </h1>
 
         <p style={{
-          fontSize: 18, fontWeight: 600,
-          color: 'rgba(255,255,255,.65)',
-          maxWidth: 480, margin: '0 auto 40px',
-          lineHeight: 1.6,
+          fontSize: 19, fontWeight: 500,
+          color: '#3D2416',
+          opacity: 0.72,
+          maxWidth: 480, margin: '0 auto 48px',
+          lineHeight: 1.55,
         }}>
           The person you&apos;re looking for already has a profile here.
         </p>
 
-        <Link href="/people" style={{ textDecoration: 'none' }}>
-          <Button variant="accent" style={{ fontSize: 16, padding: '16px 40px' }}>
-            Browse Profiles →
-          </Button>
-        </Link>
-      </section>
-
-      {/* Featured event preview */}
-      {featuredRaw && detail && (
-        <section style={{
-          position: 'relative', zIndex: 1,
-          maxWidth: 700, margin: '0 auto',
-          padding: '0 24px 80px',
-        }}>
-          <p style={{
-            fontSize: 12, fontWeight: 800, textTransform: 'uppercase',
-            letterSpacing: 2, color: 'rgba(255,255,255,.35)',
-            marginBottom: 16,
+        {/* Clay-style CTA — 2단 그림자 + inset highlight */}
+        <Link href="/people" style={{ textDecoration: 'none', display: 'inline-block' }}>
+          <button style={{
+            padding: '18px 46px', borderRadius: 999,
+            fontFamily: 'inherit',
+            fontSize: 16, fontWeight: 800,
+            letterSpacing: 0.2,
+            cursor: 'pointer',
+            background: 'linear-gradient(135deg, #FF6B5B 0%, #E84393 100%)',
+            color: '#ffffff',
+            border: 'none',
+            boxShadow: [
+              '0 14px 38px rgba(255, 107, 91, .35)',          // 큰 코랄 글로우
+              '0 4px 12px rgba(232, 67, 147, .22)',           // 핑크 베이스
+              'inset 0 1px 0 rgba(255, 255, 255, .28)',       // 상단 highlight (clay)
+              'inset 0 -2px 0 rgba(130, 20, 70, .15)',        // 하단 그림자 (clay)
+            ].join(', '),
+            transition: 'transform .2s, box-shadow .2s',
           }}>
-            Upcoming
-          </p>
+            Browse Profiles →
+          </button>
+        </Link>
 
-          <Link href={`/meetups/${featuredRaw.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
-            <Card style={{ marginBottom: 16 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
-                <div>
-                  <h3 style={{ fontSize: 20, fontWeight: 900, marginBottom: 6 }}>{featuredRaw.title}</h3>
-                  <div style={{ fontSize: 13, color: 'rgba(255,255,255,.5)', display: 'flex', gap: 14 }}>
-                    {featuredRaw.area && <span>📍 {featuredRaw.area}</span>}
-                    <span>🕖 {featuredRaw.time}</span>
-                    <span>👥 {approvedCount}/{featuredRaw.capacity}</span>
-                  </div>
-                </div>
-                {featuredRaw.fee > 0 && (
-                  <span style={{ fontSize: 15, fontWeight: 800, color: '#FF6B35' }}>
-                    ₩{featuredRaw.fee.toLocaleString()}
-                  </span>
-                )}
-              </div>
-
-              {attendees.length > 0 && (
-                <div>
-                  <p style={{ fontSize: 12, color: 'rgba(255,255,255,.35)', marginBottom: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>
-                    {"Who's going"}
-                  </p>
-                  <div style={{ display: 'grid', gap: 10 }}>
-                    {attendees.map(a => <AttendeeCard key={a.id} attendee={a} />)}
-                  </div>
-                  <Link href={`/meetups/${featuredRaw.id}`} style={{
-                    display: 'block', textAlign: 'center', marginTop: 16,
-                    fontSize: 14, fontWeight: 700,
-                    color: '#FF6B35', textDecoration: 'none',
-                  }}>
-                    See full event →
-                  </Link>
-                </div>
-              )}
-            </Card>
-          </Link>
-        </section>
-      )}
+        <p style={{
+          marginTop: 24,
+          fontSize: 13, fontWeight: 700,
+          color: '#3D2416',
+          letterSpacing: 0.1,
+        }}>
+          Locals · Expats · Visitors · Creators{' '}
+          <span style={{ opacity: 0.45, margin: '0 4px' }}>—</span>{' '}
+          already in Korea
+        </p>
+      </section>
     </div>
   );
 }

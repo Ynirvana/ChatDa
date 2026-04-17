@@ -105,17 +105,17 @@ export default function PeopleClient({
         <div style={{
           textAlign: 'center',
           padding: '14px 20px',
-          background: 'linear-gradient(135deg, rgba(255,107,53,.15), rgba(232,67,147,.15))',
-          border: '1px solid rgba(255,107,53,.2)',
+          background: 'linear-gradient(135deg, rgba(255,107,91,.10), rgba(232,67,147,.08))',
+          border: '1px solid rgba(255,107,91,.25)',
           borderRadius: 14,
           marginBottom: 24,
         }}>
-          <span style={{ fontSize: 14, fontWeight: 700, color: 'rgba(255,255,255,.85)' }}>
+          <span style={{ fontSize: 14, fontWeight: 700, color: '#3D2416' }}>
             See who&apos;s here in Korea →{' '}
           </span>
           <a href="/login" style={{
             fontWeight: 800,
-            background: 'linear-gradient(135deg, #FF6B35, #E84393)',
+            background: 'linear-gradient(135deg, #FF6B5B, #E84393)',
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
             textDecoration: 'underline',
@@ -133,42 +133,47 @@ export default function PeopleClient({
       }}>
         <input
           type="text"
+          className="input-light"
           placeholder="Search by name..."
           value={search}
           onChange={e => setSearch(e.target.value)}
           style={{
-            padding: '10px 16px',
+            padding: '11px 18px',
             borderRadius: 999,
             fontSize: 13,
             fontWeight: 600,
-            background: 'rgba(255,255,255,.06)',
-            border: '1px solid rgba(255,255,255,.1)',
-            color: '#fff',
+            background: '#FFFFFF',
+            border: '1.5px solid rgba(45, 24, 16, .18)',
+            color: '#2D1810',
             outline: 'none',
             fontFamily: 'inherit',
             flex: 1,
             minWidth: 0,
+            boxShadow: '0 2px 8px rgba(45, 24, 16, .06)',
           }}
         />
         <button
           type="button"
           onClick={() => setFiltersOpen(o => !o)}
           style={{
-            padding: '10px 18px',
+            padding: '11px 20px',
             borderRadius: 999,
             fontSize: 13,
             fontWeight: 700,
             fontFamily: 'inherit',
             cursor: 'pointer',
             background: activeCount > 0
-              ? 'linear-gradient(135deg, #FF6B35, #E84393)'
-              : 'rgba(255,255,255,.06)',
-            border: activeCount > 0 ? 'none' : '1px solid rgba(255,255,255,.1)',
-            color: '#fff',
+              ? 'linear-gradient(135deg, #FF6B5B, #E84393)'
+              : '#FFFFFF',
+            border: activeCount > 0 ? 'none' : '1.5px solid rgba(45, 24, 16, .18)',
+            color: activeCount > 0 ? '#fff' : '#2D1810',
             display: 'inline-flex',
             alignItems: 'center',
             gap: 6,
             whiteSpace: 'nowrap',
+            boxShadow: activeCount > 0
+              ? '0 4px 14px rgba(255, 107, 91, .3)'
+              : '0 2px 8px rgba(45, 24, 16, .06)',
           }}
         >
           <span>⚙︎ Filters</span>
@@ -191,9 +196,10 @@ export default function PeopleClient({
         <div style={{
           padding: 16,
           marginBottom: 24,
-          background: 'rgba(255,255,255,.03)',
-          border: '1px solid rgba(255,255,255,.08)',
+          background: 'rgba(255, 255, 255, .55)',
+          border: '1px solid rgba(45, 24, 16, .08)',
           borderRadius: 16,
+          backdropFilter: 'blur(8px)',
         }}>
           <div style={{
             display: 'grid',
@@ -254,8 +260,8 @@ export default function PeopleClient({
                 fontSize: 12, fontWeight: 700, fontFamily: 'inherit',
                 cursor: 'pointer',
                 background: 'transparent',
-                border: '1px solid rgba(255,255,255,.15)',
-                color: 'rgba(255,255,255,.6)',
+                border: '1px solid rgba(45, 24, 16, .18)',
+                color: 'rgba(45, 24, 16, .65)',
               }}
             >
               Clear all ({activeCount})
@@ -267,7 +273,7 @@ export default function PeopleClient({
       {/* Result count hint */}
       {(search || activeCount > 0) && (
         <p style={{
-          fontSize: 12, color: 'rgba(255,255,255,.4)',
+          fontSize: 12, color: 'rgba(45, 24, 16, .5)',
           marginBottom: 14, fontWeight: 600,
         }}>
           {filtered.length} {filtered.length === 1 ? 'person' : 'people'} matched
@@ -292,8 +298,8 @@ export default function PeopleClient({
           ))}
         </div>
       ) : (
-        <div style={{ textAlign: 'center', padding: '60px 20px', color: 'rgba(255,255,255,.35)' }}>
-          <p style={{ fontSize: 18, fontWeight: 800, marginBottom: 8 }}>No one here yet</p>
+        <div style={{ textAlign: 'center', padding: '60px 20px', color: 'rgba(45, 24, 16, .4)' }}>
+          <p style={{ fontSize: 18, fontWeight: 800, marginBottom: 8, color: '#3D2416' }}>No one here yet</p>
           <p style={{ fontSize: 14 }}>Be the first one! Sign up and create your profile.</p>
         </div>
       )}

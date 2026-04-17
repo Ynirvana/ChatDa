@@ -17,6 +17,8 @@ interface Props {
   placeholder: string;
   /** 팝업 최소 너비. 버튼보다 넓게 뽑고 싶을 때 */
   minWidth?: number;
+  /** 라이트 테마 — 크림 페이지 위용. Defaults to true (앞으로 라이트가 기본). */
+  light?: boolean;
 }
 
 export function FilterSelect({
@@ -25,6 +27,7 @@ export function FilterSelect({
   options,
   placeholder,
   minWidth,
+  light = true,
 }: Props) {
   const [open, setOpen] = useState(false);
   const [activeIdx, setActiveIdx] = useState(0);
@@ -34,7 +37,6 @@ export function FilterSelect({
   const selected = options.find(o => o.value === value);
   const hasValue = !!value;
 
-  // 열릴 때 현재 선택된 항목으로 active 설정
   useEffect(() => {
     if (open) {
       const idx = options.findIndex(o => o.value === value);
@@ -42,7 +44,6 @@ export function FilterSelect({
     }
   }, [open, options, value]);
 
-  // 외부 클릭 close
   useEffect(() => {
     if (!open) return;
     const onDocClick = (e: MouseEvent) => {
@@ -54,7 +55,6 @@ export function FilterSelect({
     return () => document.removeEventListener('mousedown', onDocClick);
   }, [open]);
 
-  // active 항목 스크롤
   useEffect(() => {
     if (!open || !listRef.current) return;
     const el = listRef.current.querySelector<HTMLLIElement>(`[data-idx="${activeIdx}"]`);
@@ -89,6 +89,26 @@ export function FilterSelect({
     }
   };
 
+  // Theme-aware 색상
+  const btnBg = light
+    ? (hasValue ? 'linear-gradient(135deg, rgba(255,107,91,.14), rgba(232,67,147,.12))' : '#FFFFFF')
+    : (hasValue ? 'linear-gradient(135deg, rgba(255,107,53,.18), rgba(232,67,147,.18))' : 'rgba(255,255,255,.06)');
+  const btnBorder = light
+    ? (hasValue ? 'rgba(255,107,91,.5)' : 'rgba(45, 24, 16, .18)')
+    : (hasValue ? 'rgba(255,107,53,.4)' : 'rgba(255,255,255,.1)');
+  const btnText = light
+    ? (hasValue ? '#2D1810' : '#3D2416')
+    : (hasValue ? '#fff' : 'rgba(255,255,255,.65)');
+  const btnCaret = light ? 'rgba(45, 24, 16, .5)' : 'rgba(255,255,255,.5)';
+  const btnShadow = light ? '0 2px 8px rgba(45, 24, 16, .06)' : 'none';
+
+  const popupBg = light ? '#FFFFFF' : '#2d1b4e';
+  const popupBorder = light ? 'rgba(45, 24, 16, .12)' : 'rgba(255,255,255,.15)';
+  const popupShadow = light ? '0 12px 40px rgba(45, 24, 16, .14)' : '0 12px 40px rgba(0,0,0,.5)';
+  const itemText = light ? '#2D1810' : '#fff';
+  const itemSelectedColor = light ? '#FF6B5B' : '#FF6B35';
+  const itemActiveBg = light ? 'rgba(255, 107, 91, .1)' : 'rgba(255,107,53,.12)';
+
   return (
     <div ref={rootRef} style={{ position: 'relative' }}>
       <button
@@ -100,17 +120,15 @@ export function FilterSelect({
         onKeyDown={onKey}
         style={{
           width: '100%',
-          padding: '10px 16px',
+          padding: '11px 18px',
           borderRadius: 999,
           fontSize: 13,
           fontWeight: 600,
           fontFamily: 'inherit',
           cursor: 'pointer',
-          background: hasValue
-            ? 'linear-gradient(135deg, rgba(255,107,53,.18), rgba(232,67,147,.18))'
-            : 'rgba(255,255,255,.06)',
-          border: `1px solid ${hasValue ? 'rgba(255,107,53,.4)' : 'rgba(255,255,255,.1)'}`,
-          color: hasValue ? '#fff' : 'rgba(255,255,255,.65)',
+          background: btnBg,
+          border: `1.5px solid ${btnBorder}`,
+          color: btnText,
           outline: 'none',
           display: 'flex',
           alignItems: 'center',
@@ -118,6 +136,7 @@ export function FilterSelect({
           gap: 8,
           textAlign: 'left',
           transition: 'all .15s',
+          boxShadow: btnShadow,
         }}
       >
         <span style={{
@@ -129,7 +148,7 @@ export function FilterSelect({
           <span>{selected?.label ?? placeholder}</span>
         </span>
         <span style={{
-          fontSize: 10, color: 'rgba(255,255,255,.5)',
+          fontSize: 10, color: btnCaret,
           transform: open ? 'rotate(180deg)' : 'rotate(0deg)',
           transition: 'transform .15s',
         }}>▼</span>
@@ -151,10 +170,10 @@ export function FilterSelect({
             margin: 0,
             padding: '6px 0',
             listStyle: 'none',
-            background: '#2d1b4e',
-            border: '1.5px solid rgba(255,255,255,.15)',
+            background: popupBg,
+            border: `1.5px solid ${popupBorder}`,
             borderRadius: 14,
-            boxShadow: '0 12px 40px rgba(0,0,0,.5)',
+            boxShadow: popupShadow,
           }}
         >
           {options.map((opt, idx) => {
@@ -175,8 +194,8 @@ export function FilterSelect({
                   padding: '10px 16px',
                   fontSize: 13,
                   fontWeight: isSelected ? 700 : 500,
-                  color: isSelected ? '#FF6B35' : '#fff',
-                  background: active ? 'rgba(255,107,53,.12)' : 'transparent',
+                  color: isSelected ? itemSelectedColor : itemText,
+                  background: active ? itemActiveBg : 'transparent',
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
@@ -186,7 +205,7 @@ export function FilterSelect({
                 {opt.prefix}
                 <span style={{ flex: 1 }}>{opt.label}</span>
                 {isSelected && (
-                  <span style={{ fontSize: 12, color: '#FF6B35' }}>✓</span>
+                  <span style={{ fontSize: 12, color: itemSelectedColor }}>✓</span>
                 )}
               </li>
             );

@@ -4,24 +4,27 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 const dateInputStyle: React.CSSProperties = {
-  background: 'rgba(255,255,255,.08)',
-  border: '1.5px solid rgba(255,255,255,.12)',
+  background: '#FFFFFF',
+  border: '1.5px solid rgba(45, 24, 16, .15)',
   borderRadius: 12,
-  color: '#fff',
+  color: '#2D1810',
   padding: '12px 16px',
   fontSize: 14,
   outline: 'none',
   fontFamily: 'inherit',
-  colorScheme: 'dark',   // 네이티브 date picker도 다크로
+  colorScheme: 'light',
   width: '100%',
+  boxShadow: '0 1px 4px rgba(45, 24, 16, .04)',
 };
 
 const labelStyle: React.CSSProperties = {
   fontSize: 12,
-  fontWeight: 700,
-  color: 'rgba(255,255,255,.55)',
+  fontWeight: 800,
+  color: 'rgba(45, 24, 16, .6)',
   marginBottom: 6,
   display: 'block',
+  textTransform: 'uppercase',
+  letterSpacing: 0.5,
 };
 
 export function StayDatesEditor({
@@ -80,7 +83,7 @@ export function StayDatesEditor({
         <div>
           <label style={{
             ...labelStyle,
-            color: emphasized ? '#FF6B35' : 'rgba(255,255,255,.55)',
+            color: emphasized ? '#FF6B5B' : 'rgba(45, 24, 16, .6)',
           }}>
             {arrivedLabel}
           </label>
@@ -90,7 +93,7 @@ export function StayDatesEditor({
             onChange={e => setArrived(e.target.value)}
             style={{
               ...dateInputStyle,
-              borderColor: emphasized && !arrived ? '#FF6B35' : 'rgba(255,255,255,.12)',
+              borderColor: emphasized && !arrived ? '#FF6B5B' : 'rgba(45, 24, 16, .15)',
             }}
           />
         </div>
@@ -116,11 +119,12 @@ export function StayDatesEditor({
           disabled={saving}
           style={{
             marginTop: 12,
-            padding: '9px 22px', borderRadius: 999, border: 'none',
-            fontSize: 13, fontWeight: 700, cursor: saving ? 'wait' : 'pointer',
-            background: 'linear-gradient(135deg, #FF6B35, #E84393)',
+            padding: '11px 24px', borderRadius: 999, border: 'none',
+            fontSize: 13, fontWeight: 800, cursor: saving ? 'wait' : 'pointer',
+            background: 'linear-gradient(135deg, #FF6B5B, #E84393)',
             color: '#fff',
             fontFamily: 'inherit',
+            boxShadow: '0 4px 14px rgba(255, 107, 91, .3)',
           }}
         >
           {saving ? 'Saving...' : 'Save'}

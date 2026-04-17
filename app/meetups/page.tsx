@@ -49,7 +49,7 @@ export default async function MeetupsPage({
 
   return (
     <div className="page-bg" style={{ minHeight: '100vh' }}>
-      <Nav user={session?.user} isAdmin={isAdminEmail(session?.user?.email)} />
+      <Nav user={session?.user} isAdmin={isAdminEmail(session?.user?.email)} light={false} />
 
       <Orb size={400} color="rgba(108,92,231,.25)" top={-50} left={-100} />
       <Orb size={300} color="rgba(255,107,53,.2)" top={300} right={-80} delay={2} />

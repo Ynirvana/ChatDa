@@ -8,16 +8,11 @@ import { FilterSelect, type FilterOption } from '@/components/FilterSelect';
 interface Lang { language: string; level: string; }
 
 const levelColor: Record<string, string> = {
-  native: '#00B894',
-  fluent: '#74B9FF',
-  conversational: '#FFC107',
-  learning: 'rgba(255,255,255,.4)',
+  native: '#00957A',
+  fluent: '#3E82CB',
+  conversational: '#C68600',
+  learning: 'rgba(45, 24, 16, .5)',
 };
-
-const languageOpts: FilterOption[] = [
-  { value: '', label: 'Language' },
-  ...SPOKEN_LANGUAGES.map(l => ({ value: l, label: l })),
-];
 
 const levelOpts: FilterOption[] = [
   { value: '', label: 'Level' },
@@ -70,14 +65,13 @@ export function LanguagesEditor({ initial }: { initial: Lang[] }) {
     }
   };
 
-  const canAdd = availableOpts.length > 1; // 1 = placeholder only
+  const canAdd = availableOpts.length > 1;
 
   return (
     <div>
-      {/* 이미 추가된 언어 */}
       {langs.length === 0 ? (
         <p style={{
-          fontSize: 13, color: 'rgba(255,255,255,.3)',
+          fontSize: 13, color: 'rgba(45, 24, 16, .45)',
           fontStyle: 'italic', marginBottom: 14,
         }}>
           No languages yet — add one below.
@@ -85,7 +79,7 @@ export function LanguagesEditor({ initial }: { initial: Lang[] }) {
       ) : (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
           {langs.map(l => {
-            const color = levelColor[l.level] ?? 'rgba(255,255,255,.4)';
+            const color = levelColor[l.level] ?? 'rgba(45, 24, 16, .5)';
             const levelLabel = LANGUAGE_LEVELS.find(x => x.id === l.level)?.label ?? l.level;
             return (
               <div
@@ -94,11 +88,11 @@ export function LanguagesEditor({ initial }: { initial: Lang[] }) {
                   display: 'inline-flex', alignItems: 'center', gap: 8,
                   padding: '7px 10px 7px 14px',
                   borderRadius: 999,
-                  background: 'rgba(255,255,255,.06)',
+                  background: 'rgba(45, 24, 16, .03)',
                   border: `1.5px solid ${color}66`,
                 }}
               >
-                <span style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>{l.language}</span>
+                <span style={{ fontSize: 13, fontWeight: 700, color: '#2D1810' }}>{l.language}</span>
                 <span style={{
                   fontSize: 11, fontWeight: 700, color,
                   padding: '2px 8px', borderRadius: 999,
@@ -112,7 +106,7 @@ export function LanguagesEditor({ initial }: { initial: Lang[] }) {
                   aria-label={`Remove ${l.language}`}
                   style={{
                     background: 'transparent', border: 'none', cursor: 'pointer',
-                    color: 'rgba(255,255,255,.5)',
+                    color: 'rgba(45, 24, 16, .5)',
                     fontSize: 14, fontWeight: 800,
                     padding: 0, lineHeight: 1,
                   }}
@@ -125,7 +119,6 @@ export function LanguagesEditor({ initial }: { initial: Lang[] }) {
         </div>
       )}
 
-      {/* Add toggle + panel */}
       {canAdd && (
         <>
           <button
@@ -138,9 +131,9 @@ export function LanguagesEditor({ initial }: { initial: Lang[] }) {
               fontWeight: 700,
               fontFamily: 'inherit',
               cursor: 'pointer',
-              background: 'rgba(255,255,255,.06)',
-              border: '1px solid rgba(255,255,255,.12)',
-              color: 'rgba(255,255,255,.6)',
+              background: '#FFFFFF',
+              border: '1px solid rgba(45, 24, 16, .15)',
+              color: '#3D2416',
               display: 'inline-flex',
               alignItems: 'center',
               gap: 6,
@@ -159,8 +152,8 @@ export function LanguagesEditor({ initial }: { initial: Lang[] }) {
             <div style={{
               marginTop: 12,
               padding: 14,
-              background: 'rgba(255,255,255,.04)',
-              border: '1px solid rgba(255,255,255,.1)',
+              background: 'rgba(255, 255, 255, .55)',
+              border: '1px solid rgba(45, 24, 16, .1)',
               borderRadius: 14,
             }}>
               <div style={{
@@ -188,13 +181,14 @@ export function LanguagesEditor({ initial }: { initial: Lang[] }) {
                   onClick={add}
                   disabled={!selLang || !selLevel}
                   style={{
-                    padding: '10px 20px', borderRadius: 999, border: 'none',
+                    padding: '12px 20px', borderRadius: 999, border: 'none',
                     fontSize: 13, fontWeight: 800, fontFamily: 'inherit',
                     cursor: (!selLang || !selLevel) ? 'not-allowed' : 'pointer',
-                    background: (!selLang || !selLevel) ? 'rgba(255,255,255,.08)' : 'linear-gradient(135deg, #FF6B35, #E84393)',
-                    color: '#fff',
-                    opacity: (!selLang || !selLevel) ? 0.4 : 1,
+                    background: (!selLang || !selLevel) ? 'rgba(45, 24, 16, .08)' : 'linear-gradient(135deg, #FF6B5B, #E84393)',
+                    color: (!selLang || !selLevel) ? 'rgba(45, 24, 16, .3)' : '#fff',
+                    opacity: (!selLang || !selLevel) ? 0.6 : 1,
                     whiteSpace: 'nowrap',
+                    boxShadow: (!selLang || !selLevel) ? 'none' : '0 4px 14px rgba(255, 107, 91, .3)',
                   }}
                 >
                   + Add
@@ -211,11 +205,12 @@ export function LanguagesEditor({ initial }: { initial: Lang[] }) {
           disabled={saving}
           style={{
             marginTop: 12,
-            padding: '9px 22px', borderRadius: 999, border: 'none',
-            fontSize: 13, fontWeight: 700, cursor: saving ? 'wait' : 'pointer',
-            background: 'linear-gradient(135deg, #FF6B35, #E84393)',
+            padding: '11px 24px', borderRadius: 999, border: 'none',
+            fontSize: 13, fontWeight: 800, cursor: saving ? 'wait' : 'pointer',
+            background: 'linear-gradient(135deg, #FF6B5B, #E84393)',
             color: '#fff',
             fontFamily: 'inherit',
+            boxShadow: '0 4px 14px rgba(255, 107, 91, .3)',
           }}
         >
           {saving ? 'Saving...' : 'Save languages'}

@@ -40,6 +40,18 @@
   --radius-pill: 999px;
   --radius-card: 16px;
   --radius-card-lg: 24px;
+
+  /* Light theme tokens (Phase 1 — sunset/cream palette, Airbnb-ish warm) */
+  --color-light-bg:           #FDF9F5;              /* 웜 오프화이트 */
+  --color-light-warm:         #FFF4EC;              /* 피치 틴트 */
+  --color-light-warmer:       #FFEDE0;              /* 더 진한 피치 */
+  --color-light-surface:      #FFFFFF;              /* 카드 */
+  --color-light-text:         #2D1810;              /* 딥 브라운 */
+  --color-light-text-muted:   rgba(45, 24, 16, .62);
+  --color-light-text-subtle:  rgba(45, 24, 16, .42);
+  --color-light-border:       rgba(45, 24, 16, .08);
+  --color-light-border-strong:rgba(45, 24, 16, .16);
+  --color-coral:              #FF6B5B;              /* 선셋 코랄 (기존 #FF6B35보다 따뜻) */
 }
 
 /* Base reset */
@@ -80,6 +92,19 @@ input::placeholder, textarea::placeholder {
   color: var(--color-w5);
 }
 
+/* Light-theme inputs — opt-in className. Dark input placeholder above stays for
+   legacy pages. */
+input.input-light::placeholder,
+textarea.input-light::placeholder {
+  color: rgba(45, 24, 16, 0.45);
+}
+
+/* Light select option — cream pages needs white dropdown */
+select.input-light option {
+  background: #FFFFFF;
+  color: #2D1810;
+}
+
 select option {
   background: #1a1033;
   color: #ffffff;
@@ -110,7 +135,7 @@ select option {
 .animate-scale-in  { animation: scaleIn 0.35s ease-out forwards; }
 .animate-glow      { animation: glow 4s ease-in-out infinite; }
 
-/* Page background with gradient */
+/* Page background with gradient (dark — legacy) */
 .page-bg {
   min-height: 100vh;
   min-height: 100dvh;
@@ -118,6 +143,21 @@ select option {
   padding-right: env(safe-area-inset-right);
   padding-bottom: env(safe-area-inset-bottom);
   background: linear-gradient(165deg, #1a1033 0%, #2d1b4e 30%, #1a1033 60%, #0f1923 100%);
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* Page background — light (Phase 1: landing only)
+   Cream → peach → warm peach. 하단은 살짝 더 진한 피치로 선셋 지평선 느낌. */
+.page-bg-light {
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+  padding-bottom: env(safe-area-inset-bottom);
+  background:
+    linear-gradient(180deg, #FDF9F5 0%, #FFF4EC 35%, #FFE8D9 75%, #FFDDC7 100%);
+  color: var(--color-light-text);
   position: relative;
   overflow-x: hidden;
 }

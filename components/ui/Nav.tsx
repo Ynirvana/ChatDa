@@ -11,10 +11,17 @@ interface NavUser {
   image?: string | null;
 }
 
-export function Nav({ user, isAdmin = false }: { user?: NavUser | null; isAdmin?: boolean }) {
+export function Nav({ user, isAdmin = false, light = true }: { user?: NavUser | null; isAdmin?: boolean; light?: boolean }) {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
+
+  // Theme-aware colors. light=true는 크림 배경용.
+  const navBg = light ? 'rgba(253, 249, 245, .82)' : 'rgba(26,16,51,.75)';
+  const navBorder = light ? 'rgba(45, 24, 16, .08)' : 'rgba(255,255,255,.1)';
+  const linkActiveColor = light ? '#2D1810' : '#ffffff';
+  const linkIdleColor = light ? 'rgba(45, 24, 16, .55)' : 'rgba(255,255,255,.5)';
+  const avatarBorder = light ? 'rgba(45, 24, 16, .15)' : 'rgba(255,255,255,.2)';
 
   useEffect(() => {
     setMenuOpen(false);
@@ -41,9 +48,9 @@ export function Nav({ user, isAdmin = false }: { user?: NavUser | null; isAdmin?
       position: 'sticky',
       top: 0,
       zIndex: 100,
-      background: 'rgba(26,16,51,.75)',
+      background: navBg,
       backdropFilter: 'blur(24px)',
-      borderBottom: '1px solid rgba(255,255,255,.1)',
+      borderBottom: `1px solid ${navBorder}`,
       padding: '0 20px',
       height: 64,
       display: 'flex',
@@ -65,7 +72,7 @@ export function Nav({ user, isAdmin = false }: { user?: NavUser | null; isAdmin?
         {/* MVP: People 하나에 집중. Meetups/Feed는 Nav에서 제거 (라우트는 유지) */}
         <Link href="/people" style={{ textDecoration: 'none' }}>
           <Button variant="ghost" style={{
-            color: pathname?.startsWith('/people') ? '#ffffff' : 'rgba(255,255,255,.5)',
+            color: pathname?.startsWith('/people') ? linkActiveColor : linkIdleColor,
             fontWeight: pathname?.startsWith('/people') ? 700 : 500,
           }}>
             People
@@ -86,14 +93,14 @@ export function Nav({ user, isAdmin = false }: { user?: NavUser | null; isAdmin?
                 <img
                   src={user.image}
                   alt={user.name ?? ''}
-                  style={{ width: 38, height: 38, borderRadius: '50%', border: '2px solid rgba(255,255,255,.2)', display: 'block' }}
+                  style={{ width: 38, height: 38, borderRadius: '50%', border: `2px solid ${avatarBorder}`, display: 'block' }}
                 />
               ) : (
                 <div style={{
                   width: 38, height: 38, borderRadius: '50%',
                   background: 'linear-gradient(135deg, #FF6B35, #E84393)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 18, border: '2px solid rgba(255,255,255,.2)',
+                  fontSize: 18, border: `2px solid ${avatarBorder}`,
                 }}>
                   {user.name?.[0] ?? '?'}
                 </div>
@@ -158,7 +165,14 @@ export function Nav({ user, isAdmin = false }: { user?: NavUser | null; isAdmin?
           </div>
         ) : (
           <Link href="/login" style={{ marginLeft: 8, textDecoration: 'none' }}>
-            <Button variant="primary" style={{ padding: '10px 22px', fontSize: 14 }}>
+            <Button
+              variant={light ? 'accent' : 'primary'}
+              style={{
+                padding: '10px 22px',
+                fontSize: 14,
+                boxShadow: light ? '0 4px 14px rgba(255, 107, 91, .28)' : undefined,
+              }}
+            >
               Join
             </Button>
           </Link>

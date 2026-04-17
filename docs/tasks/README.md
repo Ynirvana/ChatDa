@@ -4,6 +4,7 @@
 
 ## 현재 계획
 - [2026-04-17 — v4 후속 (GA, 체류기간, 커스텀 모티브/오퍼, DM)](./2026-04-17-v4-followup.md)
+- [2026-04-17 — Light Theme Migration (Phase 1-2 완료, Phase 3 backlog)](./2026-04-17-light-theme-migration.md)
 
 ## 규칙
 - 파일명: `YYYY-MM-DD-짧은제목.md`

@@ -18,10 +18,11 @@ export function ProfileConnectButton({
     return (
       <div style={{
         padding: '14px 0', textAlign: 'center', borderRadius: 999,
-        fontSize: 15, fontWeight: 700, color: '#00B894',
-        background: 'rgba(0,184,148,.1)', border: '1px solid rgba(0,184,148,.2)',
+        fontSize: 15, fontWeight: 800, color: '#00957A',
+        background: 'rgba(0, 184, 148, .1)',
+        border: '1px solid rgba(0, 184, 148, .32)',
       }}>
-        Connected
+        ✓ Connected
       </div>
     );
   }
@@ -30,8 +31,9 @@ export function ProfileConnectButton({
     return (
       <div style={{
         padding: '14px 0', textAlign: 'center', borderRadius: 999,
-        fontSize: 15, fontWeight: 700, color: '#FFC107',
-        background: 'rgba(255,193,7,.1)', border: '1px solid rgba(255,193,7,.2)',
+        fontSize: 15, fontWeight: 800, color: '#C68600',
+        background: 'rgba(255, 193, 7, .1)',
+        border: '1px solid rgba(255, 193, 7, .42)',
       }}>
         Request Pending
       </div>
@@ -61,13 +63,21 @@ export function ProfileConnectButton({
       onClick={handleConnect}
       disabled={busy}
       style={{
-        width: '100%', padding: '14px 0', borderRadius: 999, border: 'none',
-        fontSize: 15, fontWeight: 700, cursor: busy ? 'wait' : 'pointer',
-        background: 'linear-gradient(135deg, #FF6B35, #E84393)',
+        width: '100%', padding: '16px 0', borderRadius: 999, border: 'none',
+        fontSize: 15, fontWeight: 800, cursor: busy ? 'wait' : 'pointer',
+        background: 'linear-gradient(135deg, #FF6B5B, #E84393)',
         color: '#fff',
+        boxShadow: [
+          '0 12px 32px rgba(255, 107, 91, .3)',
+          '0 4px 10px rgba(232, 67, 147, .2)',
+          'inset 0 1px 0 rgba(255, 255, 255, .25)',
+          'inset 0 -2px 0 rgba(130, 20, 70, .15)',
+        ].join(', '),
+        fontFamily: 'inherit',
+        transition: 'transform .15s, box-shadow .15s',
       }}
     >
-      {busy ? 'Sending...' : 'Connect'}
+      {busy ? 'Sending...' : '+ Connect'}
     </button>
   );
 }

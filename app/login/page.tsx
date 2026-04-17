@@ -25,7 +25,7 @@ export default function LoginPage() {
           Join chatda
         </h1>
         <p style={{ fontSize: 16, color: 'rgba(255,255,255,.6)', marginBottom: 40, lineHeight: 1.5 }}>
-          Meet people in Seoul.<br />See who's coming before you join.
+          Meet people in Korea.<br />See who&apos;s coming before you join.
         </p>
 
         <div style={{

@@ -13,7 +13,7 @@ export default async function HostPage() {
 
   return (
     <div className="page-bg" style={{ minHeight: '100vh' }}>
-      <Nav user={session.user} isAdmin={isAdminEmail(session.user.email)} />
+      <Nav user={session.user} isAdmin={isAdminEmail(session.user.email)} light={false} />
       <Orb size={400} color="rgba(232,67,147,.2)" top={-50} right={-100} />
 
       <div style={{ maxWidth: 700, margin: '0 auto', padding: '40px 24px 80px', position: 'relative', zIndex: 1 }}>

@@ -73,11 +73,11 @@ const styles: Record<Variant, React.CSSProperties> = {
     backdropFilter: 'blur(10px)',
   },
   accent: {
-    background: 'linear-gradient(135deg, #FF6B35, #E84393)',
+    background: 'linear-gradient(135deg, #FF6B5B, #E84393)',
     color: '#ffffff',
     padding: '14px 28px',
     fontSize: 15,
-    fontWeight: 700,
+    fontWeight: 800,
     border: 'none',
     borderRadius: 999,
     cursor: 'pointer',
@@ -86,6 +86,7 @@ const styles: Record<Variant, React.CSSProperties> = {
     justifyContent: 'center',
     gap: 8,
     fontFamily: 'inherit',
+    boxShadow: '0 8px 24px rgba(255, 107, 91, .3), 0 2px 6px rgba(232, 67, 147, .18)',
   },
 };
 

@@ -78,7 +78,7 @@ export default async function AdminPage() {
   } catch (e) {
     return (
       <div className="page-bg" style={{ minHeight: '100vh' }}>
-        <Nav user={session.user} isAdmin={true} />
+        <Nav user={session.user} isAdmin={true} light={false} />
         <div style={{ maxWidth: 800, margin: '0 auto', padding: 40 }}>
           <h1 style={{ fontSize: 28, fontWeight: 900 }}>Admin</h1>
           <p style={{ color: 'rgba(255,255,255,.6)', marginTop: 16 }}>
@@ -104,7 +104,7 @@ export default async function AdminPage() {
 
   return (
     <div className="page-bg" style={{ minHeight: '100vh' }}>
-      <Nav user={session.user} />
+      <Nav user={session.user} light={false} />
       <AdminClient
         data={enrichedData}
         bans={bans}

@@ -21,10 +21,10 @@ export default async function PeoplePage() {
   );
 
   return (
-    <div className="page-bg">
-      <Nav user={session?.user} isAdmin={isAdminEmail(session?.user?.email)} />
-      <Orb size={500} color="rgba(108,92,231,.25)" top={100} left={-200} />
-      <Orb size={350} color="rgba(232,67,147,.2)" top={300} right={-100} delay={2} />
+    <div className="page-bg-light">
+      <Nav user={session?.user} isAdmin={isAdminEmail(session?.user?.email)} light />
+      <Orb size={500} color="rgba(255, 140, 120, .18)" top={100} left={-200} />
+      <Orb size={350} color="rgba(232, 67, 147, .12)" top={300} right={-100} delay={2} />
 
       <section style={{
         position: 'relative',
@@ -38,7 +38,7 @@ export default async function PeoplePage() {
           fontWeight: 900,
           letterSpacing: -1,
           marginBottom: 6,
-          background: 'linear-gradient(135deg, #FF6B35, #E84393, #6C5CE7)',
+          background: 'linear-gradient(135deg, #FF6B5B, #E84393, #6C5CE7)',
           WebkitBackgroundClip: 'text',
           WebkitTextFillColor: 'transparent',
         }}>
@@ -46,7 +46,7 @@ export default async function PeoplePage() {
         </h1>
         <p style={{
           fontSize: 14,
-          color: 'rgba(255,255,255,.45)',
+          color: 'rgba(45, 24, 16, .55)',
           marginBottom: 28,
         }}>
           See who&apos;s here in Korea

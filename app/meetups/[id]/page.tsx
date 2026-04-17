@@ -122,7 +122,7 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
 
   return (
     <div className="page-bg" style={{ minHeight: '100vh' }}>
-      <Nav user={session?.user} isAdmin={isAdminEmail(session?.user?.email)} />
+      <Nav user={session?.user} isAdmin={isAdminEmail(session?.user?.email)} light={false} />
       <Orb size={400} color="rgba(108,92,231,.2)" top={-50} right={-100} />
 
       {/* Cover image — full width below nav */}

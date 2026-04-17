@@ -9,25 +9,36 @@ interface CardProps {
   hover?: boolean;
   clickable?: boolean;
   className?: string;
+  light?: boolean;
 }
 
-export function Card({ children, style = {}, onClick, hover = true, clickable = false, className }: CardProps) {
+export function Card({ children, style = {}, onClick, hover = true, clickable = false, className, light = false }: CardProps) {
   const interactive = Boolean(onClick || clickable);
+
+  // Theme-aware resting/hover colors
+  const bgRest = light ? '#FFFFFF' : 'rgba(255,255,255,.08)';
+  const borderRest = light ? 'rgba(45, 24, 16, .1)' : 'rgba(255,255,255,.12)';
+  const bgHover = light ? '#FFFFFF' : 'rgba(255,255,255,.14)';
+  const borderHover = light ? 'rgba(255, 107, 91, .35)' : 'rgba(255, 107, 53, 0.35)';
+  const shadowHover = light
+    ? '0 16px 38px rgba(45, 24, 16, .12), 0 2px 6px rgba(45, 24, 16, .06)'
+    : '0 12px 32px rgba(255, 107, 53, 0.12)';
+  const shadowRest = light ? '0 4px 18px rgba(45, 24, 16, .07), 0 1px 3px rgba(45, 24, 16, .04)' : 'none';
 
   const handleMouseOver = (e: React.MouseEvent<HTMLDivElement>) => {
     if (hover && interactive) {
-      e.currentTarget.style.background = 'rgba(255,255,255,.14)';
+      e.currentTarget.style.background = bgHover;
       e.currentTarget.style.transform = 'translateY(-2px)';
-      e.currentTarget.style.borderColor = 'rgba(255, 107, 53, 0.35)';
-      e.currentTarget.style.boxShadow = '0 12px 32px rgba(255, 107, 53, 0.12)';
+      e.currentTarget.style.borderColor = borderHover;
+      e.currentTarget.style.boxShadow = shadowHover;
     }
   };
   const handleMouseOut = (e: React.MouseEvent<HTMLDivElement>) => {
     if (hover && interactive) {
-      e.currentTarget.style.background = 'rgba(255,255,255,.08)';
+      e.currentTarget.style.background = bgRest;
       e.currentTarget.style.transform = 'none';
-      e.currentTarget.style.borderColor = 'rgba(255,255,255,.12)';
-      e.currentTarget.style.boxShadow = '';
+      e.currentTarget.style.borderColor = borderRest;
+      e.currentTarget.style.boxShadow = shadowRest;
     }
   };
 
@@ -36,13 +47,14 @@ export function Card({ children, style = {}, onClick, hover = true, clickable = 
       onClick={onClick}
       className={className}
       style={{
-        background: 'rgba(255,255,255,.08)',
-        border: '1px solid rgba(255,255,255,.12)',
+        background: bgRest,
+        border: `1px solid ${borderRest}`,
         borderRadius: 16,
         padding: 20,
         cursor: interactive ? 'pointer' : 'default',
         transition: 'all .25s',
-        backdropFilter: 'blur(10px)',
+        backdropFilter: light ? 'none' : 'blur(10px)',
+        boxShadow: shadowRest,
         ...style,
       }}
       onMouseOver={handleMouseOver}

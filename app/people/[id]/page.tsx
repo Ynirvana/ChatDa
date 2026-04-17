@@ -10,8 +10,11 @@ import { notFound } from 'next/navigation';
 import { ProfileConnectButton } from './ProfileConnectButton';
 
 const STATUS_COLORS: Record<string, string> = {
-  tourist: '#A29BFE', student: '#74B9FF', expat: '#FF6B35',
-  local_korean: '#00B894', local_student: '#00B894', korean_worker: '#00B894',
+  local: '#00957A',
+  expat: '#E84F3D',
+  visitor: '#6C5CE7',
+  visiting_soon: '#E84393',
+  visited_before: '#6B5A4D',
 };
 
 const FLAG_MAP: Record<string, string> = {
@@ -45,10 +48,10 @@ interface UserProfile {
 }
 
 const LANG_LEVEL_COLOR: Record<string, string> = {
-  native: '#00B894',
-  fluent: '#74B9FF',
-  conversational: '#FFC107',
-  learning: 'rgba(255,255,255,.4)',
+  native: '#00957A',
+  fluent: '#3E82CB',
+  conversational: '#C68600',
+  learning: 'rgba(45, 24, 16, .5)',
 };
 
 const LANG_LEVEL_LABEL: Record<string, string> = {
@@ -89,7 +92,7 @@ export default async function PersonProfilePage({ params }: { params: Promise<{ 
   }
 
   const statusMeta = USER_STATUSES.find(s => s.id === profile.status);
-  const statusColor = STATUS_COLORS[profile.status ?? ''] ?? 'rgba(255,255,255,.3)';
+  const statusColor = STATUS_COLORS[profile.status ?? ''] ?? '#6B5A4D';
   const flag = FLAG_MAP[profile.nationality ?? ''] ?? '🌍';
   const canDo = profile.tags.filter(t => t.category === 'can_do');
   const lookingFor = profile.tags.filter(t => t.category === 'looking_for');
@@ -101,10 +104,10 @@ export default async function PersonProfilePage({ params }: { params: Promise<{ 
     : null;
 
   return (
-    <div className="page-bg">
-      <Nav user={session?.user} isAdmin={isAdminEmail(session?.user?.email)} />
-      <Orb size={400} color="rgba(108,92,231,.25)" top={50} left={-150} />
-      <Orb size={300} color="rgba(232,67,147,.2)" top={250} right={-80} delay={2} />
+    <div className="page-bg-light">
+      <Nav user={session?.user} isAdmin={isAdminEmail(session?.user?.email)} light />
+      <Orb size={400} color="rgba(255, 140, 120, .16)" top={50} left={-150} />
+      <Orb size={300} color="rgba(232, 67, 147, .12)" top={250} right={-80} delay={2} />
 
       <section style={{
         position: 'relative', zIndex: 1,
@@ -115,7 +118,8 @@ export default async function PersonProfilePage({ params }: { params: Promise<{ 
         <div style={{
           width: '100%', maxWidth: 320, aspectRatio: '1',
           margin: '0 auto 24px', borderRadius: 24, overflow: 'hidden',
-          background: 'linear-gradient(135deg, rgba(255,107,53,.15), rgba(232,67,147,.15))',
+          background: 'linear-gradient(135deg, rgba(255,107,91,.15), rgba(232,67,147,.15))',
+          boxShadow: '0 12px 34px rgba(45, 24, 16, .12)',
         }}>
           {profile.profile_image ? (
             <img
@@ -130,8 +134,8 @@ export default async function PersonProfilePage({ params }: { params: Promise<{ 
             <div style={{
               width: '100%', height: '100%',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              background: 'linear-gradient(135deg, #FF6B35, #E84393)',
-              fontSize: 80, fontWeight: 900, color: 'rgba(255,255,255,.7)',
+              background: 'linear-gradient(135deg, #FF6B5B, #E84393)',
+              fontSize: 80, fontWeight: 900, color: 'rgba(255,255,255,.95)',
               filter: authed ? 'none' : 'blur(8px)',
             }}>
               {profile.name[0]?.toUpperCase()}
@@ -141,7 +145,7 @@ export default async function PersonProfilePage({ params }: { params: Promise<{ 
 
         {/* Name + nationality */}
         <div style={{ textAlign: 'center', marginBottom: 16 }}>
-          <h1 style={{ fontSize: 28, fontWeight: 900, marginBottom: 8 }}>
+          <h1 style={{ fontSize: 28, fontWeight: 900, marginBottom: 8, color: '#2D1810' }}>
             <span style={{ marginRight: 8 }}>{flag}</span>
             {profile.name}
           </h1>
@@ -150,7 +154,8 @@ export default async function PersonProfilePage({ params }: { params: Promise<{ 
               <span style={{
                 display: 'inline-block', padding: '5px 16px', borderRadius: 999,
                 fontSize: 13, fontWeight: 700,
-                background: `${statusColor}22`, color: statusColor,
+                background: `${statusColor}1A`, color: statusColor,
+                border: `1px solid ${statusColor}33`,
               }}>
                 {statusMeta.label}
               </span>
@@ -160,9 +165,9 @@ export default async function PersonProfilePage({ params }: { params: Promise<{ 
                 display: 'inline-flex', alignItems: 'center', gap: 4,
                 padding: '5px 14px', borderRadius: 999,
                 fontSize: 13, fontWeight: 700,
-                background: 'rgba(255,255,255,.06)',
-                color: 'rgba(255,255,255,.7)',
-                border: '1px solid rgba(255,255,255,.1)',
+                background: '#FFFFFF',
+                color: '#3D2416',
+                border: '1px solid rgba(45, 24, 16, .12)',
               }}>
                 📍 {profile.location}
               </span>
@@ -180,8 +185,8 @@ export default async function PersonProfilePage({ params }: { params: Promise<{ 
           )}
           {memberSince && (
             <div style={{ textAlign: 'center' }}>
-              <p style={{ fontSize: 14, fontWeight: 800, color: 'rgba(255,255,255,.75)' }}>{memberSince}</p>
-              <p style={{ fontSize: 11, color: 'rgba(255,255,255,.35)' }}>member since</p>
+              <p style={{ fontSize: 14, fontWeight: 800, color: '#3D2416' }}>{memberSince}</p>
+              <p style={{ fontSize: 11, color: 'rgba(45, 24, 16, .5)' }}>member since</p>
             </div>
           )}
         </div>
@@ -189,15 +194,15 @@ export default async function PersonProfilePage({ params }: { params: Promise<{ 
         {/* Bio */}
         {authed ? (
           profile.bio && (
-            <Card style={{ padding: 20, marginBottom: 16, textAlign: 'center' }}>
-              <p style={{ fontSize: 16, color: 'rgba(255,255,255,.7)', lineHeight: 1.6 }}>
+            <Card light style={{ padding: 20, marginBottom: 16, textAlign: 'center' }}>
+              <p style={{ fontSize: 16, color: 'rgba(45, 24, 16, .8)', lineHeight: 1.6 }}>
                 {profile.bio}
               </p>
             </Card>
           )
         ) : (
-          <Card style={{ padding: 20, marginBottom: 16, textAlign: 'center' }}>
-            <p style={{ fontSize: 14, color: 'rgba(255,255,255,.3)', fontStyle: 'italic' }}>
+          <Card light style={{ padding: 20, marginBottom: 16, textAlign: 'center' }}>
+            <p style={{ fontSize: 14, color: 'rgba(45, 24, 16, .45)', fontStyle: 'italic' }}>
               Sign up to see bio
             </p>
           </Card>
@@ -206,8 +211,8 @@ export default async function PersonProfilePage({ params }: { params: Promise<{ 
         {/* Stay line — 짧게 한 줄 */}
         {authed && stayLine && (
           <p style={{
-            textAlign: 'center', fontSize: 13, color: 'rgba(255,255,255,.5)',
-            marginBottom: 14, fontWeight: 600,
+            textAlign: 'center', fontSize: 13, color: 'rgba(45, 24, 16, .65)',
+            marginBottom: 14, fontWeight: 700,
           }}>
             🗓️ {stayLine}
           </p>
@@ -215,25 +220,25 @@ export default async function PersonProfilePage({ params }: { params: Promise<{ 
 
         {/* Languages */}
         {authed && profile.languages && profile.languages.length > 0 && (
-          <Card style={{ padding: 20, marginBottom: 16 }}>
-            <p style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,.4)', marginBottom: 10 }}>
+          <Card light style={{ padding: 20, marginBottom: 16 }}>
+            <p style={{ fontSize: 12, fontWeight: 800, color: 'rgba(45, 24, 16, .5)', marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.6 }}>
               Languages
             </p>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
               {profile.languages.map(l => {
-                const color = LANG_LEVEL_COLOR[l.level] ?? 'rgba(255,255,255,.4)';
+                const color = LANG_LEVEL_COLOR[l.level] ?? 'rgba(45, 24, 16, .5)';
                 return (
                   <div key={l.language} style={{
                     display: 'inline-flex', alignItems: 'center', gap: 6,
                     padding: '5px 12px', borderRadius: 999,
-                    background: 'rgba(255,255,255,.06)',
-                    border: `1px solid ${color}44`,
+                    background: 'rgba(45, 24, 16, .03)',
+                    border: `1px solid ${color}33`,
                   }}>
-                    <span style={{ fontSize: 13, fontWeight: 700 }}>{l.language}</span>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: '#2D1810' }}>{l.language}</span>
                     <span style={{
                       fontSize: 10, fontWeight: 700, color,
                       padding: '2px 7px', borderRadius: 999,
-                      background: `${color}22`,
+                      background: `${color}1A`,
                     }}>
                       {LANG_LEVEL_LABEL[l.level] ?? l.level}
                     </span>
@@ -246,15 +251,16 @@ export default async function PersonProfilePage({ params }: { params: Promise<{ 
 
         {/* Interests */}
         {authed && profile.interests && profile.interests.length > 0 && (
-          <Card style={{ padding: 20, marginBottom: 16 }}>
-            <p style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,.4)', marginBottom: 10 }}>
+          <Card light style={{ padding: 20, marginBottom: 16 }}>
+            <p style={{ fontSize: 12, fontWeight: 800, color: 'rgba(45, 24, 16, .5)', marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.6 }}>
               Interests
             </p>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
               {profile.interests.map(t => (
                 <span key={t} style={{
                   padding: '4px 12px', borderRadius: 999, fontSize: 12, fontWeight: 700,
-                  background: 'rgba(162,155,254,.15)', color: '#A29BFE',
+                  background: 'rgba(108, 92, 231, .1)', color: '#6C5CE7',
+                  border: '1px solid rgba(108, 92, 231, .22)',
                 }}>{t}</span>
               ))}
             </div>
@@ -263,17 +269,18 @@ export default async function PersonProfilePage({ params }: { params: Promise<{ 
 
         {/* Tags */}
         {authed && (canDo.length > 0 || lookingFor.length > 0) && (
-          <Card style={{ padding: 20, marginBottom: 16 }}>
+          <Card light style={{ padding: 20, marginBottom: 16 }}>
             {canDo.length > 0 && (
               <div style={{ marginBottom: lookingFor.length > 0 ? 12 : 0 }}>
-                <p style={{ fontSize: 12, fontWeight: 700, color: '#00B894', marginBottom: 8 }}>
+                <p style={{ fontSize: 12, fontWeight: 800, color: '#00957A', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.6 }}>
                   Can help with
                 </p>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                   {canDo.map(t => (
                     <span key={t.tag} style={{
                       padding: '4px 12px', borderRadius: 999, fontSize: 12, fontWeight: 700,
-                      background: 'rgba(0,184,148,.15)', color: '#00B894',
+                      background: 'rgba(0, 149, 122, .1)', color: '#00957A',
+                      border: '1px solid rgba(0, 149, 122, .24)',
                     }}>{t.tag}</span>
                   ))}
                 </div>
@@ -281,14 +288,15 @@ export default async function PersonProfilePage({ params }: { params: Promise<{ 
             )}
             {lookingFor.length > 0 && (
               <div>
-                <p style={{ fontSize: 12, fontWeight: 700, color: '#74B9FF', marginBottom: 8 }}>
+                <p style={{ fontSize: 12, fontWeight: 800, color: '#3E82CB', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.6 }}>
                   Looking for
                 </p>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                   {lookingFor.map(t => (
                     <span key={t.tag} style={{
                       padding: '4px 12px', borderRadius: 999, fontSize: 12, fontWeight: 700,
-                      background: 'rgba(116,185,255,.15)', color: '#74B9FF',
+                      background: 'rgba(62, 130, 203, .1)', color: '#3E82CB',
+                      border: '1px solid rgba(62, 130, 203, .24)',
                     }}>{t.tag}</span>
                   ))}
                 </div>
@@ -299,8 +307,8 @@ export default async function PersonProfilePage({ params }: { params: Promise<{ 
 
         {/* Social links — connected: full, not connected: icons only */}
         {authed && profile.social_platforms.length > 0 && (
-          <Card style={{ padding: 20, marginBottom: 16 }}>
-            <p style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,.4)', marginBottom: 10 }}>
+          <Card light style={{ padding: 20, marginBottom: 16 }}>
+            <p style={{ fontSize: 12, fontWeight: 800, color: 'rgba(45, 24, 16, .5)', marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.6 }}>
               Social
             </p>
             {isConnected ? (
@@ -314,8 +322,9 @@ export default async function PersonProfilePage({ params }: { params: Promise<{ 
                     style={{
                       display: 'flex', alignItems: 'center', gap: 8,
                       padding: '8px 16px', borderRadius: 999,
-                      background: 'rgba(255,255,255,.08)', border: '1px solid rgba(255,255,255,.12)',
-                      fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,.7)',
+                      background: 'rgba(45, 24, 16, .04)',
+                      border: '1px solid rgba(45, 24, 16, .12)',
+                      fontSize: 13, fontWeight: 700, color: '#3D2416',
                       textDecoration: 'none',
                     }}
                   >
@@ -330,13 +339,14 @@ export default async function PersonProfilePage({ params }: { params: Promise<{ 
                   <div key={p} style={{
                     display: 'flex', alignItems: 'center', gap: 6,
                     padding: '8px 16px', borderRadius: 999,
-                    background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.08)',
+                    background: 'rgba(45, 24, 16, .03)',
+                    border: '1px solid rgba(45, 24, 16, .1)',
                   }}>
                     <PlatformIcon platform={p} size={20} />
-                    <span style={{ fontSize: 12, color: 'rgba(255,255,255,.25)' }}>🔒</span>
+                    <span style={{ fontSize: 12, color: 'rgba(45, 24, 16, .4)' }}>🔒</span>
                   </div>
                 ))}
-                <span style={{ fontSize: 11, color: 'rgba(255,255,255,.3)', fontStyle: 'italic' }}>
+                <span style={{ fontSize: 11, color: 'rgba(45, 24, 16, .5)', fontStyle: 'italic', fontWeight: 600 }}>
                   Connect to see links
                 </span>
               </div>
@@ -347,15 +357,15 @@ export default async function PersonProfilePage({ params }: { params: Promise<{ 
         {/* Hosted events — MVP에서 숨김. Meetups 되살릴 때 복원. */}
         {false && profile.hosted_events.length > 0 && (
           <div style={{ marginBottom: 16 }}>
-            <p style={{ fontSize: 14, fontWeight: 800, color: 'rgba(255,255,255,.5)', marginBottom: 10 }}>
+            <p style={{ fontSize: 14, fontWeight: 800, color: 'rgba(45, 24, 16, .55)', marginBottom: 10 }}>
               Hosted Meetups
             </p>
             <div style={{ display: 'grid', gap: 8 }}>
               {profile.hosted_events.map(e => (
                 <Link key={e.id} href={`/meetups/${e.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
-                  <Card style={{ padding: 14 }}>
+                  <Card light style={{ padding: 14 }}>
                     <p style={{ fontSize: 15, fontWeight: 700, marginBottom: 4 }}>{e.title}</p>
-                    <p style={{ fontSize: 12, color: 'rgba(255,255,255,.4)' }}>
+                    <p style={{ fontSize: 12, color: 'rgba(45, 24, 16, .5)' }}>
                       {new Date(e.date + 'T00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                       {e.area ? ` · ${e.area}` : ''}
                     </p>
@@ -376,9 +386,10 @@ export default async function PersonProfilePage({ params }: { params: Promise<{ 
           <a href="/login" style={{ textDecoration: 'none' }}>
             <div style={{
               padding: '14px 0', textAlign: 'center', borderRadius: 999,
-              fontSize: 15, fontWeight: 700,
-              background: 'linear-gradient(135deg, #FF6B35, #E84393)',
+              fontSize: 15, fontWeight: 800,
+              background: 'linear-gradient(135deg, #FF6B5B, #E84393)',
               color: '#fff',
+              boxShadow: '0 10px 26px rgba(255, 107, 91, .3), inset 0 1px 0 rgba(255,255,255,.25)',
             }}>
               Sign up to connect →
             </div>
@@ -392,8 +403,8 @@ export default async function PersonProfilePage({ params }: { params: Promise<{ 
 function StatBadge({ value, label }: { value: number; label: string }) {
   return (
     <div style={{ textAlign: 'center' }}>
-      <p style={{ fontSize: 20, fontWeight: 900, color: '#fff' }}>{value}</p>
-      <p style={{ fontSize: 11, color: 'rgba(255,255,255,.35)' }}>{label}</p>
+      <p style={{ fontSize: 20, fontWeight: 900, color: '#2D1810' }}>{value}</p>
+      <p style={{ fontSize: 11, color: 'rgba(45, 24, 16, .5)' }}>{label}</p>
     </div>
   );
 }
