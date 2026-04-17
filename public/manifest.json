@@ -1,7 +1,7 @@
 {
   "name": "chatda",
   "short_name": "chatda",
-  "description": "Korea's International Network. Find your people in Korea.",
+  "description": "Korea's cross-cultural network. Find your people — locals, expats, visitors, and creators already in Korea.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#1a1033",

@@ -49,6 +49,40 @@
 
 ## 다음 라운드 (Backlog)
 
+### 2026-04-16 이후 — v4 피벗 (People 탭 중심)
+
+**Step 1 온보딩 — 2026-04-16/17 배포 완료:**
+- [x] `users.location` 추가 + 광역 14개 LOCATIONS
+- [x] 소셜 링크 필수 → 선택 (accordion, connect accepted 후 공개)
+- [x] 온보딩 완료 후 `/people`로 리다이렉트
+- [x] People 탭 Location 필터 + 카드/상세/프로필에 📍 표시
+- [x] `db:migrate` dev/prod 스크립트 분리 + migrate-prod.sh confirmation prompt
+- [x] USER_STATUSES 5개 재정의 (local/expat/visitor/visiting_soon/visited_before) + 기존 값 매핑
+- [x] "What brings you here?" 10개 모티브 중 1~3개 필수
+- [x] Nationality combobox (197개, 검색)
+- [x] 안내 문구 "Your profile is how others find you in Korea"
+
+**Step 2 프로필 확장 — 2026-04-17 배포 완료:**
+- [x] 체류 기간 (status별 분기 — Local 숨김 / Expat=Since when / Visitor=arrived+departed / Visiting soon=강조 / Visited before=과거)
+- [x] What I can offer / looking for — TagEditor 리팩터 (선택 위 + Add more 접이식)
+- [x] 구사 언어 + 레벨 (Native/Fluent/Conversational/Learning)
+- [x] 관심사 프리셋 20개 (최대 10)
+- [x] 프로필 완성도 % 바 + 안내 문구
+- [x] People 탭 필터 확장 (offer/language/motivation/social)
+- [x] Threads 소셜 플랫폼 추가 (enum 0017)
+- [x] People 카드 LinkedIn 스타일 리디자인 (커버+원형 아바타+mutual count+outline CTA)
+- [x] 네이티브 select → 커스텀 FilterSelect 교체 (다크 팝업)
+- [x] 랜딩 카피 v4 전부 반영
+- [x] Admin self-protect (본인/타 admin 삭제 차단)
+
+**다음 라운드:**
+- [ ] 알림 시스템 (Nav 🔔 + unread 뱃지 + dropdown). Connect request/accept/reject, RSVP new/approved/rejected, comment reply 등.
+- [ ] 이미지 S3/Cloudinary 이전 (현재 base64 in DB)
+- [ ] 이벤트 취소/신청 취소, 반복 일정
+- [ ] Gigs 탭 (v4 2단계)
+
+### 운영 하드닝
+
 [`docs/deploy/security-followup.md`](../deploy/security-followup.md) 참조. 핵심:
 - DB 백업 cron 등록 (5분), UptimeRobot (10분), CF Bot Fight Mode (1분) — **지금 바로 가능**
 - Sentry, OAuth dev/prod 분리, slowapi rate limiting, NEXTAUTH_SECRET 회전 — 사용자 유입 단계에 맞춰

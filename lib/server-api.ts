@@ -86,11 +86,22 @@ export interface ApiEventDetail extends ApiEventSummary {
   attendees: ApiAttendee[];
 }
 
+export interface ApiLanguage {
+  language: string;
+  level: string;
+}
+
 export interface ApiProfile {
   id: string;
   name: string;
   nationality: string | null;
+  location: string | null;
   status: string | null;
+  looking_for: string[];
+  stay_arrived: string | null;   // YYYY-MM-DD
+  stay_departed: string | null;
+  languages: ApiLanguage[];
+  interests: string[];
   bio: string | null;
   profile_image: string | null;
   onboarding_complete: boolean;

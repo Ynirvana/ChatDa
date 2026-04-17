@@ -7,7 +7,7 @@ interface Overview {
   posts: { id: string; content: string; user_id: string; user_name: string; user_email: string; created_at: string | null }[];
   comments: { id: string; content: string; post_id: string; user_id: string; user_name: string; user_email: string; created_at: string | null }[];
   memories: { id: string; content: string; event_id: string; event_title: string; user_id: string; user_name: string; user_email: string; created_at: string | null }[];
-  users: { id: string; name: string; email: string; nationality: string | null; onboarding_complete: boolean; created_at: string | null }[];
+  users: { id: string; name: string; email: string; nationality: string | null; onboarding_complete: boolean; created_at: string | null; is_admin: boolean }[];
   events: { id: string; title: string; date: string; area: string | null; host_id: string | null; capacity: number }[];
 }
 
@@ -20,10 +20,19 @@ interface BanEntry {
 
 type Tab = 'posts' | 'comments' | 'memories' | 'users' | 'events' | 'banned';
 
-export default function AdminClient({ data, bans }: { data: Overview; bans: BanEntry[] }) {
+export default function AdminClient({
+  data,
+  bans,
+  currentAdminEmail,
+}: {
+  data: Overview;
+  bans: BanEntry[];
+  currentAdminEmail: string;
+}) {
   const router = useRouter();
   const [tab, setTab] = useState<Tab>('posts');
   const [busyId, setBusyId] = useState<string | null>(null);
+  const myEmail = currentAdminEmail.trim().toLowerCase();
 
   const doDelete = async (url: string, id: string, confirmMsg: string) => {
     if (!confirm(confirmMsg)) return;
@@ -221,34 +230,62 @@ export default function AdminClient({ data, bans }: { data: Overview; bans: BanE
       {tab === 'users' && (
         <Section>
           {data.users.length === 0 && <EmptyRow text="유저 없음" />}
-          {data.users.map(u => (
-            <Row key={u.id}>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <Meta>{u.email} · {u.nationality ?? '(국적 없음)'} · {u.onboarding_complete ? 'onboarded' : 'pending'} · {fmt(u.created_at)}</Meta>
-                <Body>{u.name}</Body>
-              </div>
-              <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-                <ActionBtn
-                  busy={busyId === u.id}
-                  onClick={() => banUser(u.email, u.id)}
-                  label="Ban"
-                  color="#FFC107"
-                />
-                <ActionBtn
-                  busy={busyId === u.id}
-                  onClick={() => deleteAccount(u.id, u.email)}
-                  label="Delete + Ban"
-                  color="rgba(255,107,53,.85)"
-                />
-                <ActionBtn
-                  busy={busyId === u.id}
-                  onClick={() => deleteAccountOnly(u.id, u.email)}
-                  label="Delete Only"
-                  color="rgba(255,255,255,.15)"
-                />
-              </div>
-            </Row>
-          ))}
+          {data.users.map(u => {
+            const isSelf = u.email.trim().toLowerCase() === myEmail;
+            const isProtected = isSelf || u.is_admin;
+            const protectedLabel = isSelf
+              ? '(you — can\'t self-moderate)'
+              : '(admin — protected)';
+            return (
+              <Row key={u.id}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <Meta>
+                    {u.email} · {u.nationality ?? '(국적 없음)'} · {u.onboarding_complete ? 'onboarded' : 'pending'} · {fmt(u.created_at)}
+                    {u.is_admin && (
+                      <span style={{
+                        marginLeft: 8, padding: '2px 8px', borderRadius: 999,
+                        background: 'rgba(108,92,231,.2)', color: '#A29BFE',
+                        fontSize: 10, fontWeight: 800, letterSpacing: 0.3,
+                      }}>
+                        ADMIN
+                      </span>
+                    )}
+                  </Meta>
+                  <Body>{u.name}</Body>
+                </div>
+                {isProtected ? (
+                  <span style={{
+                    flexShrink: 0, fontSize: 11, fontWeight: 600,
+                    color: 'rgba(255,255,255,.35)', fontStyle: 'italic',
+                    padding: '6px 12px',
+                  }}>
+                    {protectedLabel}
+                  </span>
+                ) : (
+                  <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                    <ActionBtn
+                      busy={busyId === u.id}
+                      onClick={() => banUser(u.email, u.id)}
+                      label="Ban"
+                      color="#FFC107"
+                    />
+                    <ActionBtn
+                      busy={busyId === u.id}
+                      onClick={() => deleteAccount(u.id, u.email)}
+                      label="Delete + Ban"
+                      color="rgba(255,107,53,.85)"
+                    />
+                    <ActionBtn
+                      busy={busyId === u.id}
+                      onClick={() => deleteAccountOnly(u.id, u.email)}
+                      label="Delete Only"
+                      color="rgba(255,255,255,.15)"
+                    />
+                  </div>
+                )}
+              </Row>
+            );
+          })}
         </Section>
       )}
 

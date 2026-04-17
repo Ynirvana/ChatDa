@@ -8,8 +8,10 @@
     "start": "next start",
     "lint": "eslint",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "DATABASE_URL=postgresql://chatda:chatda@localhost:5434/chatda drizzle-kit migrate",
-    "db:seed": "DATABASE_URL=postgresql://chatda:chatda@localhost:5434/chatda npx tsx scripts/seed.ts"
+    "db:migrate": "DATABASE_URL=postgresql://chatda:chatda@localhost:5434/chatda_dev drizzle-kit migrate",
+    "db:migrate:prod": "bash scripts/migrate-prod.sh",
+    "db:seed": "DATABASE_URL=postgresql://chatda:chatda@localhost:5434/chatda_dev npx tsx scripts/seed.ts",
+    "db:seed:prod": "DATABASE_URL=postgresql://chatda:chatda@localhost:5434/chatda npx tsx scripts/seed.ts"
   },
   "dependencies": {
     "@auth/core": "^0.41.0",

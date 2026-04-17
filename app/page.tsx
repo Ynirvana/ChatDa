@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import { Orb, Card } from '@/components/ui/Card';
 import { Nav } from '@/components/ui/Nav';
 import { Button } from '@/components/ui/Button';
@@ -11,6 +12,9 @@ export const revalidate = 60;
 
 export default async function Home() {
   const session = await auth();
+
+  // 로그인 유저는 People 탭으로 바로 이동. 비로그인은 랜딩 노출.
+  if (session?.user?.id) redirect('/people');
 
   const events = await backendFetch<ApiEventSummary[]>('/events').catch(() => [] as ApiEventSummary[]);
   const featuredRaw = events[0] ?? null;
@@ -51,7 +55,7 @@ export default async function Home() {
           fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,.8)',
           marginBottom: 28, letterSpacing: 0.3,
         }}>
-          Korea&apos;s International Network
+          Korea&apos;s cross-cultural network
         </div>
 
         <h1 style={{
@@ -62,7 +66,7 @@ export default async function Home() {
           WebkitBackgroundClip: 'text',
           WebkitTextFillColor: 'transparent',
         }}>
-          Find your people in Korea
+          See who else is here in Korea.
         </h1>
 
         <p style={{
@@ -71,12 +75,12 @@ export default async function Home() {
           maxWidth: 480, margin: '0 auto 40px',
           lineHeight: 1.6,
         }}>
-          The person you&apos;re looking for is already here
+          The person you&apos;re looking for already has a profile here.
         </p>
 
-        <Link href="/meetups" style={{ textDecoration: 'none' }}>
+        <Link href="/people" style={{ textDecoration: 'none' }}>
           <Button variant="accent" style={{ fontSize: 16, padding: '16px 40px' }}>
-            Browse Meetups →
+            Browse Profiles →
           </Button>
         </Link>
       </section>

@@ -135,12 +135,24 @@ async def delete_user_cascade(
     """Delete a user and cascade all their content + hosted events.
     If also_ban=true (default), the user's email is added to banned_emails
     so they cannot re-register. Admin emails are never banned.
+
+    Self-protection: an admin cannot delete their own account or any other
+    admin account — this would lock the service out of moderation.
     """
     user = await db.get(User, user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
     user_email = user.email
+
+    # 자기 자신 삭제 금지 — 실수로 본인 락아웃 방지
+    if user_email and user_email.lower() == admin_email.lower():
+        raise HTTPException(status_code=400, detail="Cannot delete your own admin account")
+
+    # 다른 admin 삭제도 금지 — ban 엔드포인트와 일관성. 관리자 권한 회수는
+    # ADMIN_EMAILS env에서 이메일을 빼는 방식으로만 가능.
+    if user_email and is_admin_email(user_email):
+        raise HTTPException(status_code=400, detail="Cannot delete an admin account (remove from ADMIN_EMAILS first)")
 
     # Hosted event IDs (their rsvps/memories also need cleanup)
     hosted_ids = (

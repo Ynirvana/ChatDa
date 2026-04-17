@@ -2,15 +2,19 @@
 
 import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { NATIONALITIES, PLATFORMS, USER_STATUSES } from '@/lib/constants';
+import { LOCATIONS, PLATFORMS, USER_STATUSES } from '@/lib/constants';
 import { Orb } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { PlatformIcon } from '@/components/ui/PlatformIcon';
+import { NationalityCombobox } from '@/components/NationalityCombobox';
+import { LookingForPicker } from '@/components/LookingForPicker';
 
 type InitialData = {
   name: string;
   nationality: string;
+  location: string;
   status: string;
+  lookingFor: string[];
   bio: string;
   profileImage: string;
   socialLinks: Record<string, string>;
@@ -34,18 +38,29 @@ export default function OnboardingForm({
   const [form, setForm] = useState({
     name: initial?.name ?? '',
     nationality: initial?.nationality ?? '',
+    location: initial?.location ?? '',
     status: initial?.status ?? '',
+    lookingFor: (initial?.lookingFor ?? []) as string[],
     bio: initial?.bio ?? '',
     socialLinks: initial?.socialLinks ?? ({} as Record<string, string>),
   });
   const [statusOpen, setStatusOpen] = useState(false);
+  const [socialOpen, setSocialOpen] = useState(
+    Object.values(initial?.socialLinks ?? {}).some(Boolean),
+  );
 
   const set = (key: string, value: string) => setForm(p => ({ ...p, [key]: value }));
+  const setLookingFor = (next: string[]) => setForm(p => ({ ...p, lookingFor: next }));
   const setLink = (platform: string, url: string) =>
     setForm(p => ({ ...p, socialLinks: { ...p.socialLinks, [platform]: url } }));
 
-  const filledLinks = Object.values(form.socialLinks).filter(Boolean).length;
-  const canSubmit = form.name.trim() && form.nationality && form.status && filledLinks >= 1 && !loading;
+  const canSubmit =
+    form.name.trim() &&
+    form.nationality &&
+    form.location &&
+    form.status &&
+    form.lookingFor.length >= 1 &&
+    !loading;
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -74,7 +89,7 @@ export default function OnboardingForm({
     });
 
     if (res.ok) {
-      router.push('/meetups');
+      router.push('/people');
     } else {
       setLoading(false);
     }
@@ -113,7 +128,7 @@ export default function OnboardingForm({
             {isReturning ? 'Edit your profile' : 'Set up your profile'}
           </h1>
           <p style={{ fontSize: 15, color: 'rgba(255,255,255,.5)', lineHeight: 1.5 }}>
-            Your profile is visible to other members before meetups — make it real.
+            Your profile is how others find you in Korea. Make it real.
           </p>
         </div>
 
@@ -219,14 +234,23 @@ export default function OnboardingForm({
           {/* Nationality */}
           <div>
             <label style={labelStyle}>Nationality *</label>
+            <NationalityCombobox
+              value={form.nationality}
+              onChange={v => set('nationality', v)}
+            />
+          </div>
+
+          {/* Location */}
+          <div>
+            <label style={labelStyle}>Current location in Korea *</label>
             <select
               style={{ ...inputStyle, appearance: 'none' }}
-              value={form.nationality}
-              onChange={e => set('nationality', e.target.value)}
+              value={form.location}
+              onChange={e => set('location', e.target.value)}
             >
-              <option value="">Select nationality</option>
-              {NATIONALITIES.map(n => (
-                <option key={n} value={n}>{n}</option>
+              <option value="">Select location</option>
+              {LOCATIONS.map(l => (
+                <option key={l} value={l}>{l}</option>
               ))}
             </select>
           </div>
@@ -305,6 +329,21 @@ export default function OnboardingForm({
             )}
           </div>
 
+          {/* What brings you here? — 1~3개 선택 필수 */}
+          <div>
+            <label style={labelStyle}>What brings you here? *</label>
+            <p style={{
+              fontSize: 13, color: 'rgba(255,255,255,.4)',
+              marginBottom: 12, lineHeight: 1.5,
+            }}>
+              Pick up to 3. Helps others find you on the People tab.
+            </p>
+            <LookingForPicker
+              value={form.lookingFor}
+              onChange={setLookingFor}
+            />
+          </div>
+
           {/* Bio */}
           <div>
             <label style={labelStyle}>
@@ -321,47 +360,66 @@ export default function OnboardingForm({
             />
           </div>
 
-          {/* Social links */}
+          {/* Social links — optional, revealed on toggle */}
           <div>
-            <label style={labelStyle}>
-              Your social link *{' '}
-              <span style={{ color: 'rgba(255,255,255,.25)', fontWeight: 400 }}>at least 1</span>
-            </label>
-            <p style={{ fontSize: 13, color: 'rgba(255,255,255,.35)', marginBottom: 20, lineHeight: 1.5 }}>
-              Share the link that best represents you. Networking? Add LinkedIn.
-              Creative work? Try Instagram or TikTok. This helps people decide to connect with you.
-            </p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-              {PLATFORMS.map(p => (
-                <div key={p.id}>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: '#fff', marginBottom: 8 }}>
-                    {p.label}
-                  </div>
-                  <div style={{ position: 'relative' }}>
-                    <div style={{
-                      position: 'absolute', left: 0, top: 0, bottom: 0,
-                      width: 52, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      pointerEvents: 'none', zIndex: 1,
-                    }}>
-                      <PlatformIcon platform={p.id} size={26} />
+            <button
+              type="button"
+              onClick={() => setSocialOpen(o => !o)}
+              style={{
+                width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                padding: '14px 18px', borderRadius: 12, cursor: 'pointer', fontFamily: 'inherit',
+                background: 'rgba(255,255,255,.04)',
+                border: '1.5px dashed rgba(255,255,255,.15)',
+                color: 'rgba(255,255,255,.7)', fontSize: 14, fontWeight: 700,
+                textAlign: 'left',
+              }}
+            >
+              <span>
+                Add social links{' '}
+                <span style={{ color: 'rgba(255,255,255,.35)', fontWeight: 500 }}>(optional)</span>
+              </span>
+              <span style={{
+                fontSize: 12, color: 'rgba(255,255,255,.4)',
+                transform: socialOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                transition: 'transform .2s', display: 'inline-block',
+              }}>▼</span>
+            </button>
+
+            {socialOpen && (
+              <div style={{ marginTop: 14 }}>
+                <p style={{ fontSize: 12, color: 'rgba(255,255,255,.4)', marginBottom: 16, lineHeight: 1.5 }}>
+                  🔒 Only visible to members you accept as connections. Adding links helps others decide to connect with you.
+                </p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                  {PLATFORMS.map(p => (
+                    <div key={p.id}>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,.75)', marginBottom: 6 }}>
+                        {p.label}
+                      </div>
+                      <div style={{ position: 'relative' }}>
+                        <div style={{
+                          position: 'absolute', left: 0, top: 0, bottom: 0,
+                          width: 48, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          pointerEvents: 'none', zIndex: 1,
+                        }}>
+                          <PlatformIcon platform={p.id} size={22} />
+                        </div>
+                        <div style={{
+                          position: 'absolute', left: 48, top: 8, bottom: 8,
+                          width: 1, background: 'rgba(255,255,255,.12)', pointerEvents: 'none', zIndex: 1,
+                        }} />
+                        <input
+                          style={{ ...inputStyle, paddingLeft: 58, paddingTop: 11, paddingBottom: 11, fontSize: 14 }}
+                          value={form.socialLinks[p.id] || ''}
+                          onChange={e => setLink(p.id, e.target.value)}
+                          placeholder={p.placeholder}
+                        />
+                      </div>
                     </div>
-                    <div style={{
-                      position: 'absolute', left: 52, top: 8, bottom: 8,
-                      width: 1, background: 'rgba(255,255,255,.12)', pointerEvents: 'none', zIndex: 1,
-                    }} />
-                    <input
-                      style={{ ...inputStyle, paddingLeft: 62, paddingTop: 12, paddingBottom: 12 }}
-                      value={form.socialLinks[p.id] || ''}
-                      onChange={e => setLink(p.id, e.target.value)}
-                      placeholder=""
-                    />
-                  </div>
-                  <p style={{ fontSize: 12, color: 'rgba(255,255,255,.25)', marginTop: 6 }}>
-                    {p.placeholder}
-                  </p>
+                  ))}
                 </div>
-              ))}
-            </div>
+              </div>
+            )}
           </div>
 
           {/* Submit */}
@@ -378,7 +436,7 @@ export default function OnboardingForm({
           {isReturning && (
             <button
               type="button"
-              onClick={() => router.push('/meetups')}
+              onClick={() => router.push('/people')}
               style={{
                 width: '100%', padding: '14px', borderRadius: 999,
                 background: 'transparent', border: '1.5px solid rgba(255,255,255,.15)',

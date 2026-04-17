@@ -25,7 +25,13 @@ interface UserProfile {
   id: string;
   name: string;
   nationality: string | null;
+  location: string | null;
   status: string | null;
+  looking_for?: string[];
+  stay_arrived: string | null;
+  stay_departed: string | null;
+  languages: { language: string; level: string }[];
+  interests: string[];
   bio: string | null;
   profile_image: string | null;
   social_links: { platform: string; url: string }[];
@@ -36,6 +42,38 @@ interface UserProfile {
   attended_count: number;
   mutual_count: number;
   created_at: string | null;
+}
+
+const LANG_LEVEL_COLOR: Record<string, string> = {
+  native: '#00B894',
+  fluent: '#74B9FF',
+  conversational: '#FFC107',
+  learning: 'rgba(255,255,255,.4)',
+};
+
+const LANG_LEVEL_LABEL: Record<string, string> = {
+  native: 'Native',
+  fluent: 'Fluent',
+  conversational: 'Conversational',
+  learning: 'Learning',
+};
+
+function formatStay(
+  status: string | null,
+  arrived: string | null,
+  departed: string | null,
+): string | null {
+  if (!arrived && !departed) return null;
+  const fmt = (s: string | null) =>
+    s ? new Date(s + 'T00:00').toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : '';
+  if (status === 'expat') return arrived ? `In Korea since ${fmt(arrived)}` : null;
+  if (status === 'visiting_soon') return arrived ? `Arriving ${fmt(arrived)}` : null;
+  if (status === 'visitor')
+    return [arrived && `Arrived ${fmt(arrived)}`, departed && `leaving ${fmt(departed)}`]
+      .filter(Boolean).join(' · ') || null;
+  if (status === 'visited_before')
+    return [arrived && fmt(arrived), departed && fmt(departed)].filter(Boolean).join(' – ') || null;
+  return null;
 }
 
 export default async function PersonProfilePage({ params }: { params: Promise<{ id: string }> }) {
@@ -56,6 +94,7 @@ export default async function PersonProfilePage({ params }: { params: Promise<{ 
   const canDo = profile.tags.filter(t => t.category === 'can_do');
   const lookingFor = profile.tags.filter(t => t.category === 'looking_for');
   const isConnected = profile.connection?.status === 'accepted';
+  const stayLine = formatStay(profile.status, profile.stay_arrived, profile.stay_departed);
 
   const memberSince = profile.created_at
     ? new Date(profile.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
@@ -106,15 +145,29 @@ export default async function PersonProfilePage({ params }: { params: Promise<{ 
             <span style={{ marginRight: 8 }}>{flag}</span>
             {profile.name}
           </h1>
-          {statusMeta && (
-            <span style={{
-              display: 'inline-block', padding: '5px 16px', borderRadius: 999,
-              fontSize: 13, fontWeight: 700,
-              background: `${statusColor}22`, color: statusColor,
-            }}>
-              {statusMeta.label}
-            </span>
-          )}
+          <div style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap', alignItems: 'center' }}>
+            {statusMeta && (
+              <span style={{
+                display: 'inline-block', padding: '5px 16px', borderRadius: 999,
+                fontSize: 13, fontWeight: 700,
+                background: `${statusColor}22`, color: statusColor,
+              }}>
+                {statusMeta.label}
+              </span>
+            )}
+            {profile.location && (
+              <span style={{
+                display: 'inline-flex', alignItems: 'center', gap: 4,
+                padding: '5px 14px', borderRadius: 999,
+                fontSize: 13, fontWeight: 700,
+                background: 'rgba(255,255,255,.06)',
+                color: 'rgba(255,255,255,.7)',
+                border: '1px solid rgba(255,255,255,.1)',
+              }}>
+                📍 {profile.location}
+              </span>
+            )}
+          </div>
         </div>
 
         {/* Stats row */}
@@ -122,12 +175,6 @@ export default async function PersonProfilePage({ params }: { params: Promise<{ 
           display: 'flex', justifyContent: 'center', gap: 24,
           marginBottom: 20, flexWrap: 'wrap',
         }}>
-          {profile.attended_count > 0 && (
-            <StatBadge value={profile.attended_count} label="meetups attended" />
-          )}
-          {profile.hosted_events.length > 0 && (
-            <StatBadge value={profile.hosted_events.length} label="hosted" />
-          )}
           {authed && profile.mutual_count > 0 && (
             <StatBadge value={profile.mutual_count} label="mutual" />
           )}
@@ -153,6 +200,64 @@ export default async function PersonProfilePage({ params }: { params: Promise<{ 
             <p style={{ fontSize: 14, color: 'rgba(255,255,255,.3)', fontStyle: 'italic' }}>
               Sign up to see bio
             </p>
+          </Card>
+        )}
+
+        {/* Stay line — 짧게 한 줄 */}
+        {authed && stayLine && (
+          <p style={{
+            textAlign: 'center', fontSize: 13, color: 'rgba(255,255,255,.5)',
+            marginBottom: 14, fontWeight: 600,
+          }}>
+            🗓️ {stayLine}
+          </p>
+        )}
+
+        {/* Languages */}
+        {authed && profile.languages && profile.languages.length > 0 && (
+          <Card style={{ padding: 20, marginBottom: 16 }}>
+            <p style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,.4)', marginBottom: 10 }}>
+              Languages
+            </p>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              {profile.languages.map(l => {
+                const color = LANG_LEVEL_COLOR[l.level] ?? 'rgba(255,255,255,.4)';
+                return (
+                  <div key={l.language} style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 6,
+                    padding: '5px 12px', borderRadius: 999,
+                    background: 'rgba(255,255,255,.06)',
+                    border: `1px solid ${color}44`,
+                  }}>
+                    <span style={{ fontSize: 13, fontWeight: 700 }}>{l.language}</span>
+                    <span style={{
+                      fontSize: 10, fontWeight: 700, color,
+                      padding: '2px 7px', borderRadius: 999,
+                      background: `${color}22`,
+                    }}>
+                      {LANG_LEVEL_LABEL[l.level] ?? l.level}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </Card>
+        )}
+
+        {/* Interests */}
+        {authed && profile.interests && profile.interests.length > 0 && (
+          <Card style={{ padding: 20, marginBottom: 16 }}>
+            <p style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,.4)', marginBottom: 10 }}>
+              Interests
+            </p>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {profile.interests.map(t => (
+                <span key={t} style={{
+                  padding: '4px 12px', borderRadius: 999, fontSize: 12, fontWeight: 700,
+                  background: 'rgba(162,155,254,.15)', color: '#A29BFE',
+                }}>{t}</span>
+              ))}
+            </div>
           </Card>
         )}
 
@@ -239,8 +344,8 @@ export default async function PersonProfilePage({ params }: { params: Promise<{ 
           </Card>
         )}
 
-        {/* Hosted events */}
-        {profile.hosted_events.length > 0 && (
+        {/* Hosted events — MVP에서 숨김. Meetups 되살릴 때 복원. */}
+        {false && profile.hosted_events.length > 0 && (
           <div style={{ marginBottom: 16 }}>
             <p style={{ fontSize: 14, fontWeight: 800, color: 'rgba(255,255,255,.5)', marginBottom: 10 }}>
               Hosted Meetups

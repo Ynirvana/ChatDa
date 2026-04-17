@@ -3,12 +3,23 @@ from sqlalchemy.ext.asyncio import AsyncSession
 import sqlalchemy
 from sqlalchemy import select, delete
 from pydantic import BaseModel, Field, field_validator
+from typing import Literal
+from datetime import date
 from nanoid import generate
 
 from database import get_db, User, SocialLink, UserTag, Rsvp, Event, Connection
 from auth import get_current_user_id, optional_user_id
 
 router = APIRouter(prefix="/users", tags=["users"])
+
+# v4 값. enum drop 후 application-level로만 관리.
+StatusLiteral = Literal['local', 'expat', 'visitor', 'visiting_soon', 'visited_before']
+LanguageLevelLiteral = Literal['native', 'fluent', 'conversational', 'learning']
+
+
+class LanguageEntry(BaseModel):
+    language: str = Field(min_length=1, max_length=40)
+    level: LanguageLevelLiteral
 
 
 class SocialLinkIn(BaseModel):
@@ -24,10 +35,28 @@ class TagIn(BaseModel):
 class OnboardingBody(BaseModel):
     name: str = Field(min_length=1, max_length=80)
     nationality: str = Field(min_length=1, max_length=60)
-    status: str | None = Field(default=None, max_length=40)
+    location: str | None = Field(default=None, max_length=60)
+    status: StatusLiteral | None = None
+    looking_for: list[str] = Field(default_factory=list, max_length=3)
     bio: str | None = Field(default=None, max_length=500)
     profile_image: str | None = None
     social_links: list[SocialLinkIn] = Field(default_factory=list, max_length=10)
+
+    @field_validator("looking_for")
+    @classmethod
+    def _validate_looking_for(cls, v: list[str]) -> list[str]:
+        # 중복 제거 + 개별 길이 제한. 실제 id 검증은 프론트 constants와 일치시키되 백엔드도 최소한의 sanity.
+        cleaned = []
+        seen: set[str] = set()
+        for item in v:
+            s = item.strip()
+            if not s or s in seen:
+                continue
+            if len(s) > 40:
+                raise ValueError("looking_for item too long")
+            seen.add(s)
+            cleaned.append(s)
+        return cleaned
 
     @field_validator("profile_image")
     @classmethod
@@ -45,7 +74,13 @@ class ProfileOut(BaseModel):
     id: str
     name: str
     nationality: str | None
+    location: str | None
     status: str | None
+    looking_for: list[str]
+    stay_arrived: date | None
+    stay_departed: date | None
+    languages: list[dict]
+    interests: list[str]
     bio: str | None
     profile_image: str | None
     onboarding_complete: bool
@@ -56,6 +91,47 @@ class ProfileOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class ProfilePatchBody(BaseModel):
+    """Step 2 필드만 업데이트. 전부 optional — partial update."""
+    bio: str | None = Field(default=None, max_length=500)
+    stay_arrived: date | None = None
+    stay_departed: date | None = None
+    languages: list[LanguageEntry] | None = Field(default=None, max_length=20)
+    interests: list[str] | None = Field(default=None, max_length=10)
+
+    @field_validator("interests")
+    @classmethod
+    def _clean_interests(cls, v: list[str] | None) -> list[str] | None:
+        if v is None:
+            return None
+        out: list[str] = []
+        seen: set[str] = set()
+        for item in v:
+            s = item.strip()
+            if not s or s in seen:
+                continue
+            if len(s) > 40:
+                raise ValueError("interest too long")
+            seen.add(s)
+            out.append(s)
+        return out
+
+    @field_validator("languages")
+    @classmethod
+    def _dedupe_langs(cls, v: list[LanguageEntry] | None) -> list[LanguageEntry] | None:
+        if v is None:
+            return None
+        seen: set[str] = set()
+        out: list[LanguageEntry] = []
+        for e in v:
+            key = e.language.strip().lower()
+            if not key or key in seen:
+                continue
+            seen.add(key)
+            out.append(e)
+        return out
 
 
 @router.get("/directory")
@@ -80,10 +156,12 @@ async def directory(
         select(SocialLink).where(SocialLink.user_id.in_(user_ids))
     )
     links_by_user: dict[str, list[dict]] = {}
+    platforms_by_user: dict[str, list[str]] = {}
     for link in links_result.scalars().all():
         links_by_user.setdefault(link.user_id, []).append(
             {"platform": link.platform, "url": link.url}
         )
+        platforms_by_user.setdefault(link.user_id, []).append(link.platform)
 
     # Tags
     tags_result = await db.execute(
@@ -95,7 +173,7 @@ async def directory(
             {"tag": tag.tag, "category": tag.category}
         )
 
-    # Connections for viewer (to gate social links)
+    # Connections for viewer (to gate social links + mutual count)
     connected_ids: set[str] = set()
     connection_map: dict[str, dict] = {}  # user_id → {id, status}
     if viewer_id:
@@ -113,20 +191,45 @@ async def directory(
             if c.status == "accepted":
                 connected_ids.add(other)
 
+    # Mutual connections: 각 target이 accepted인 사람들의 집합 만든 뒤 viewer connected_ids와 교집합 크기
+    mutual_by_user: dict[str, int] = {}
+    if viewer_id and connected_ids:
+        all_accepted = await db.execute(
+            select(Connection).where(Connection.status == "accepted")
+        )
+        peers_by_user: dict[str, set[str]] = {}
+        for c in all_accepted.scalars().all():
+            peers_by_user.setdefault(c.requester_id, set()).add(c.recipient_id)
+            peers_by_user.setdefault(c.recipient_id, set()).add(c.requester_id)
+        for u in all_users:
+            if u.id == viewer_id:
+                continue
+            peers = peers_by_user.get(u.id, set())
+            count = len(peers & connected_ids)
+            if count > 0:
+                mutual_by_user[u.id] = count
+
     return {
         "users": [
             {
                 "id": u.id,
                 "name": u.name,
                 "nationality": u.nationality,
+                "location": u.location,
                 "status": u.status,
+                "looking_for": list(u.looking_for or []),
+                "languages": list(u.languages or []),
+                "interests": list(u.interests or []),
                 "bio": u.bio,
                 "profile_image": u.profile_image,
                 "social_links": links_by_user.get(u.id, [])
                     if (viewer_id == u.id or u.id in connected_ids)
                     else [],
+                # URL은 connect 전엔 숨기되 플랫폼 이름만 노출 — 필터/아이콘 프리뷰용
+                "social_platforms": platforms_by_user.get(u.id, []),
                 "tags": tags_by_user.get(u.id, []),
                 "connection": connection_map.get(u.id),
+                "mutual_count": mutual_by_user.get(u.id, 0),
             }
             for u in all_users
             if u.id != viewer_id  # don't show self
@@ -216,7 +319,13 @@ async def get_public_profile(
         "id": user.id,
         "name": user.name,
         "nationality": user.nationality,
+        "location": user.location,
         "status": user.status,
+        "looking_for": list(user.looking_for or []),
+        "stay_arrived": user.stay_arrived.isoformat() if user.stay_arrived else None,
+        "stay_departed": user.stay_departed.isoformat() if user.stay_departed else None,
+        "languages": list(user.languages or []),
+        "interests": list(user.interests or []),
         "bio": user.bio,
         "profile_image": user.profile_image,
         "social_links": [{"platform": l.platform, "url": l.url} for l in links] if show_social else [],
@@ -242,7 +351,9 @@ async def complete_onboarding(
 
     user.name = body.name.strip()
     user.nationality = body.nationality
+    user.location = body.location or None
     user.status = body.status or None
+    user.looking_for = body.looking_for
     user.bio = body.bio.strip() if body.bio else None
     if body.profile_image is not None:
         user.profile_image = body.profile_image or None
@@ -304,7 +415,14 @@ async def get_my_profile(
 
     return ProfileOut(
         id=user.id, name=user.name,
-        nationality=user.nationality, status=user.status, bio=user.bio,
+        nationality=user.nationality, location=user.location,
+        status=user.status,
+        looking_for=list(user.looking_for or []),
+        stay_arrived=user.stay_arrived,
+        stay_departed=user.stay_departed,
+        languages=list(user.languages or []),
+        interests=list(user.interests or []),
+        bio=user.bio,
         profile_image=user.profile_image,
         onboarding_complete=user.onboarding_complete,
         social_links=[{"platform": l.platform, "url": l.url} for l in links],
@@ -312,6 +430,39 @@ async def get_my_profile(
         rsvps=my_rsvps,
         hosted_events=hosted_events,
     )
+
+
+@router.patch("/me")
+async def patch_my_profile(
+    body: ProfilePatchBody,
+    user_id: str = Depends(get_current_user_id),
+    db: AsyncSession = Depends(get_db),
+):
+    """Step 2 필드 업데이트 — 온보딩 끝난 뒤 프로필 페이지에서 호출. Partial update."""
+    user = await db.get(User, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # Pydantic exclude_unset으로 실제 들어온 필드만 업데이트
+    data = body.model_dump(exclude_unset=True)
+    if "bio" in data:
+        v = data["bio"]
+        user.bio = v.strip() if v else None
+    if "stay_arrived" in data:
+        user.stay_arrived = data["stay_arrived"]
+    if "stay_departed" in data:
+        user.stay_departed = data["stay_departed"]
+    if "languages" in data:
+        # LanguageEntry → dict 직렬화. 전부 교체.
+        user.languages = [
+            {"language": e["language"].strip(), "level": e["level"]}
+            for e in data["languages"] or []
+        ]
+    if "interests" in data:
+        user.interests = data["interests"] or []
+
+    await db.commit()
+    return {"ok": True}
 
 
 class TagsBody(BaseModel):

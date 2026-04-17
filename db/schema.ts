@@ -1,8 +1,8 @@
-import { pgTable, pgEnum, text, integer, boolean, timestamp } from 'drizzle-orm/pg-core';
+import { pgTable, pgEnum, text, integer, boolean, timestamp, date, jsonb } from 'drizzle-orm/pg-core';
 
-export const platformEnum = pgEnum('platform', ['linkedin', 'instagram', 'x', 'tiktok', 'snapchat', 'whatsapp', 'kakao', 'facebook']);
+export const platformEnum = pgEnum('platform', ['linkedin', 'instagram', 'x', 'tiktok', 'snapchat', 'whatsapp', 'kakao', 'facebook', 'threads']);
 export const rsvpStatusEnum = pgEnum('rsvp_status', ['pending', 'approved', 'rejected', 'cancelled']);
-export const userStatusEnum = pgEnum('user_status', ['tourist', 'student', 'expat', 'local_korean', 'local_student', 'korean_worker']);
+// user_status enum은 v4에서 drop — 값이 유동적이라 application-level validation(constants.ts USER_STATUSES)로 관리.
 
 export const users = pgTable('users', {
   id: text('id').primaryKey(),
@@ -10,9 +10,16 @@ export const users = pgTable('users', {
   email: text('email').notNull().unique(),
   googleId: text('google_id').unique(),
   nationality: text('nationality'),
+  location: text('location'),
   bio: text('bio'),
   profileImage: text('profile_image'),
-  status: userStatusEnum('status'),
+  status: text('status'),
+  lookingFor: text('looking_for').array().notNull().default([]),
+  // Step 2 — 프로필 페이지에서 나중에 채움. 전부 optional.
+  stayArrived: date('stay_arrived'),       // 도착일 (Living/Visiting/Visiting soon/Visited before)
+  stayDeparted: date('stay_departed'),     // 출국일 (Visiting/Visited before)
+  languages: jsonb('languages').$type<{ language: string; level: string }[]>().notNull().default([]),
+  interests: text('interests').array().notNull().default([]),
   onboardingComplete: boolean('onboarding_complete').default(false),
   createdAt: timestamp('created_at').notNull().defaultNow(),
 });

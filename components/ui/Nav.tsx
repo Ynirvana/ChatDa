@@ -62,20 +62,15 @@ export function Nav({ user, isAdmin = false }: { user?: NavUser | null; isAdmin?
       {/* Right side */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
 
-        {[
-          { href: '/meetups', label: 'Meetups' },
-          { href: '/feed', label: 'Feed' },
-          { href: '/people', label: 'People' },
-        ].map(({ href, label }) => (
-          <Link key={href} href={href} style={{ textDecoration: 'none' }}>
-            <Button variant="ghost" style={{
-              color: pathname?.startsWith(href) ? '#ffffff' : 'rgba(255,255,255,.5)',
-              fontWeight: pathname?.startsWith(href) ? 700 : 500,
-            }}>
-              {label}
-            </Button>
-          </Link>
-        ))}
+        {/* MVP: People 하나에 집중. Meetups/Feed는 Nav에서 제거 (라우트는 유지) */}
+        <Link href="/people" style={{ textDecoration: 'none' }}>
+          <Button variant="ghost" style={{
+            color: pathname?.startsWith('/people') ? '#ffffff' : 'rgba(255,255,255,.5)',
+            fontWeight: pathname?.startsWith('/people') ? 700 : 500,
+          }}>
+            People
+          </Button>
+        </Link>
 
         {/* Avatar / Join */}
         {user ? (

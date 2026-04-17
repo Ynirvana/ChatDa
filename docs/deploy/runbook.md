@@ -116,22 +116,32 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
 
 ## 5. DB 마이그레이션
 
-### prod DB (`chatda`)에 마이그레이션 적용
-```bash
-cd /home/dykim/project/ChatDa
-DATABASE_URL=postgresql://chatda:chatda@localhost:5434/chatda npm run db:migrate
-```
+⚠️ **항상 dev 먼저 → 확인 → prod** 순서. `db:migrate`는 이제 `chatda_dev`를 기본 타깃으로 함.
 
-### dev DB (`chatda_dev`)
-```bash
-DATABASE_URL=postgresql://chatda:chatda@localhost:5434/chatda_dev npm run db:migrate
-```
-
-### 마이그레이션 파일 생성 (스키마 변경 후)
+### 1) 스키마 변경 → 마이그레이션 파일 생성
 ```bash
 npm run db:generate
-# drizzle/NNNN_*.sql 파일 생성됨 → 검토 후 git commit
+# drizzle/NNNN_*.sql 파일 생성됨 → SQL 직접 열어서 검토 후 git commit
 ```
+
+### 2) dev DB (`chatda_dev`) 먼저 적용
+```bash
+npm run db:migrate
+```
+
+### 3) prod DB (`chatda`) 적용 — 확인 프롬프트 있는 전용 스크립트
+```bash
+npm run db:migrate:prod
+# → "Type 'APPLY' to continue" 프롬프트. 오타 한 번에 abort됨.
+# → 내부적으로 scripts/migrate-prod.sh 가 prod URL로 drizzle-kit migrate 호출
+```
+
+**권장 순서:**
+1. 배포 전에 `scripts/backup-db.sh`로 prod 백업
+2. `npm run db:migrate` (dev)
+3. 변경 검증 (`psql -d chatda_dev ...`)
+4. `npm run db:migrate:prod`
+5. 컨테이너 rebuild (§4)
 
 ### 마이그레이션 이력 확인
 ```bash
@@ -252,7 +262,11 @@ sudo systemctl restart cloudflared
 
 ### 시드 실행 (주의: 기존 데이터에 추가됨)
 ```bash
-DATABASE_URL=postgresql://chatda:chatda@localhost:5434/chatda_dev npx tsx scripts/seed.ts
+# dev DB — 안전, 테스트용
+npm run db:seed
+
+# prod DB — 거의 쓸 일 없음. 의도적으로 명시적 스크립트.
+npm run db:seed:prod
 ```
 
 ### prod 데이터 정리 (테스트 유저 제거)

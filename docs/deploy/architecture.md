@@ -1,4 +1,16 @@
-# 프로덕션 아키텍처 (2026-04-15 기준)
+# 프로덕션 아키텍처 (2026-04-17 기준)
+
+> **최근 변경 (v4 Step 1+2 배포 완료, 2026-04-17):**
+> - 마이그레이션 `0014`~`0017` 전부 prod 적용:
+>   - `0014`: `users.location` (date nullable)
+>   - `0015`: `status` enum → text 전환 + 6→5 값 매핑 + `users.looking_for text[]`
+>   - `0016`: `users.stay_arrived/stay_departed` (date), `users.languages` (jsonb), `users.interests` (text[])
+>   - `0017`: `platform` enum에 `threads` 값 추가
+> - `/users/directory` 응답에 `social_platforms`, `mutual_count` 추가
+> - People 카드 LinkedIn 스타일(원형 아바타 + status별 커버 그라데이션)로 리디자인
+> - 필터 UI 네이티브 select → 커스텀 `FilterSelect` 교체 (다크 팝업 + 키보드 네비)
+> - Admin 본인/타 admin 삭제 차단 (self-protect)
+> - 온보딩 완료/edit-done 리다이렉트 `/meetups` → `/people`
 
 ## 전체 데이터 흐름
 
@@ -225,7 +237,31 @@ Backend 공통: `DATABASE_URL`, `NEXTAUTH_SECRET`
 
 - `lib/auth.ts`에 `trustHost: true` 설정 ← **self-hosted 환경 필수**. 없으면 prod에서 `UntrustedHost` 에러
 - `pages.newUser: '/onboarding'` (JWT 전략이라 실제로는 `redirectTo='/onboarding'`을 signIn 호출 시 명시)
-- `redirectTo`: `/login` 페이지의 signIn() 호출에서 `'/onboarding'`으로 고정 → `/onboarding/page.tsx`가 returning user는 `/meetups`로 리다이렉트
+- `redirectTo`: `/login` 페이지의 signIn() 호출에서 `'/onboarding'`으로 고정 → `/onboarding/page.tsx`가 returning user는 `/people`로 리다이렉트 (v4 피벗 전엔 `/meetups`였음)
+
+---
+
+## `users` 테이블 현재 스키마 (2026-04-17)
+
+| 컬럼 | 타입 | 비고 |
+|---|---|---|
+| id | text PK | nanoid |
+| name, email, google_id | text | 기본 |
+| nationality | text | 197개 형용사 중 1 (lib/nationalities.ts) |
+| location | text | 한국 광역 14개 + Other (lib/constants.LOCATIONS) |
+| status | text | `local` / `expat` / `visitor` / `visiting_soon` / `visited_before` |
+| looking_for | text[] NOT NULL '{}' | Step 1 "What brings you here?" 최대 3개 (lib/constants.LOOKING_FOR_OPTIONS) |
+| stay_arrived | date nullable | Step 2, status별 분기 (Local은 표시 X) |
+| stay_departed | date nullable | 동일 |
+| languages | jsonb NOT NULL '[]' | `[{language, level}]` — level: native/fluent/conversational/learning |
+| interests | text[] NOT NULL '{}' | 최대 10 (lib/constants.INTERESTS) |
+| bio | text | 100자 제한 |
+| profile_image | text | base64 data URL 또는 Google URL |
+| onboarding_complete | boolean default false | |
+| created_at | timestamp | |
+
+## `platform` enum (social_links.platform)
+`linkedin, instagram, x, tiktok, snapchat, whatsapp, kakao, facebook, threads` — **threads는 2026-04-17 추가 (0017)**. UI 노출은 `PLATFORMS` 순서 (`instagram → threads → x → tiktok → linkedin → facebook`).
 
 ---
 

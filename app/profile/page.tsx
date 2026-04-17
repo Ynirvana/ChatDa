@@ -10,10 +10,11 @@ import { formatTime } from '@/lib/utils';
 import { CopyEventLink } from '@/components/CopyEventLink';
 import { TagEditor } from '@/components/TagEditor';
 import { ConnectionRequests } from '@/components/ConnectionRequests';
-
-const platformIcon: Record<string, string> = {
-  linkedin: '💼', instagram: '📸', x: '𝕏', tiktok: '🎵',
-};
+import { ProfileCompleteness } from '@/components/ProfileCompleteness';
+import { StayDatesEditor } from '@/components/StayDatesEditor';
+import { LanguagesEditor } from '@/components/LanguagesEditor';
+import { InterestsEditor } from '@/components/InterestsEditor';
+import { PlatformIcon } from '@/components/ui/PlatformIcon';
 
 const statusStyle: Record<string, { label: string; color: string; bg: string }> = {
   pending:   { label: 'Pending',   color: 'rgba(255,234,167,.9)', bg: 'rgba(255,255,255,.08)' },
@@ -42,6 +43,9 @@ export default async function ProfilePage() {
       <Orb size={400} color="rgba(108,92,231,.2)" top={-50} left={-100} />
 
       <div style={{ maxWidth: 600, margin: '0 auto', padding: '40px 24px 80px', position: 'relative', zIndex: 1 }}>
+
+        {/* Completeness bar */}
+        <ProfileCompleteness profile={profile} />
 
         {/* Profile header */}
         <Card style={{ marginBottom: 24, padding: 24 }}>
@@ -72,6 +76,11 @@ export default async function ProfilePage() {
                 {profile.nationality && (
                   <span style={{ fontSize: 13, color: 'rgba(255,255,255,.5)' }}>{profile.nationality}</span>
                 )}
+                {profile.location && (
+                  <span style={{ fontSize: 13, color: 'rgba(255,255,255,.5)' }}>
+                    📍 {profile.location}
+                  </span>
+                )}
                 {profile.status && (() => {
                   const s = USER_STATUSES.find(s => s.id === profile.status);
                   return s ? (
@@ -95,16 +104,17 @@ export default async function ProfilePage() {
           )}
 
           {profile.social_links.length > 0 && (
-            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
               {profile.social_links.map(l => (
                 <a key={l.platform} href={l.url} target="_blank" rel="noopener noreferrer" style={{
-                  display: 'flex', alignItems: 'center', gap: 6,
-                  padding: '6px 14px', borderRadius: 999,
+                  display: 'flex', alignItems: 'center', gap: 8,
+                  padding: '8px 16px', borderRadius: 999,
                   background: 'rgba(255,255,255,.08)', border: '1px solid rgba(255,255,255,.12)',
                   fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,.7)',
                   textDecoration: 'none',
                 }}>
-                  {platformIcon[l.platform] ?? '🔗'} {l.platform}
+                  <PlatformIcon platform={l.platform} size={20} />
+                  {l.platform}
                 </a>
               ))}
             </div>
@@ -114,13 +124,38 @@ export default async function ProfilePage() {
         {/* Connection Requests */}
         <ConnectionRequests />
 
+        {/* Stay dates — Local은 컴포넌트 내부에서 null 반환 */}
+        {profile.status !== 'local' && (
+          <Card style={{ marginBottom: 24, padding: 20 }}>
+            <h2 style={{ fontSize: 18, fontWeight: 900, marginBottom: 14 }}>Stay in Korea</h2>
+            <StayDatesEditor
+              status={profile.status}
+              initialArrived={profile.stay_arrived}
+              initialDeparted={profile.stay_departed}
+            />
+          </Card>
+        )}
+
+        {/* Languages */}
+        <Card style={{ marginBottom: 24, padding: 20 }}>
+          <h2 style={{ fontSize: 18, fontWeight: 900, marginBottom: 14 }}>Languages spoken</h2>
+          <LanguagesEditor initial={profile.languages ?? []} />
+        </Card>
+
+        {/* Interests */}
+        <Card style={{ marginBottom: 24, padding: 20 }}>
+          <h2 style={{ fontSize: 18, fontWeight: 900, marginBottom: 14 }}>Interests</h2>
+          <InterestsEditor initial={profile.interests ?? []} />
+        </Card>
+
         {/* Tags */}
         <Card style={{ marginBottom: 24, padding: 20 }}>
           <h2 style={{ fontSize: 18, fontWeight: 900, marginBottom: 14 }}>My Tags</h2>
           <TagEditor initial={profile.tags ?? []} />
         </Card>
 
-        {/* My Meetups (hosted + attending) */}
+        {/* My Meetups — MVP에서 숨김. Meetups 되살릴 때 false → true 로 복원. */}
+        {false && <>
         <h2 style={{ fontSize: 18, fontWeight: 900, marginBottom: 14 }}>My Meetups</h2>
 
         {(() => {
@@ -196,6 +231,7 @@ export default async function ProfilePage() {
             </div>
           );
         })()}
+        </>}
       </div>
     </div>
   );

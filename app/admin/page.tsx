@@ -5,6 +5,15 @@ import { backendFetch } from '@/lib/server-api';
 import { Nav } from '@/components/ui/Nav';
 import AdminClient from './AdminClient';
 
+type BackendUser = {
+  id: string;
+  name: string;
+  email: string;
+  nationality: string | null;
+  onboarding_complete: boolean;
+  created_at: string | null;
+};
+
 export const dynamic = 'force-dynamic';
 
 interface Overview {
@@ -35,14 +44,7 @@ interface Overview {
     user_email: string;
     created_at: string | null;
   }[];
-  users: {
-    id: string;
-    name: string;
-    email: string;
-    nationality: string | null;
-    onboarding_complete: boolean;
-    created_at: string | null;
-  }[];
+  users: BackendUser[];
   events: {
     id: string;
     title: string;
@@ -92,10 +94,22 @@ export default async function AdminPage() {
     );
   }
 
+  // 서버에서 each user에 is_admin 플래그 추가. ADMIN_EMAILS 전체 리스트는
+  // 노출하지 않고, "이 유저가 admin인가" 단일 boolean만 내려줌.
+  const usersWithAdminFlag = data.users.map(u => ({
+    ...u,
+    is_admin: isAdminEmail(u.email),
+  }));
+  const enrichedData = { ...data, users: usersWithAdminFlag };
+
   return (
     <div className="page-bg" style={{ minHeight: '100vh' }}>
       <Nav user={session.user} />
-      <AdminClient data={data} bans={bans} />
+      <AdminClient
+        data={enrichedData}
+        bans={bans}
+        currentAdminEmail={session.user.email ?? ''}
+      />
     </div>
   );
 }
