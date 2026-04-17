@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { PlatformIcon } from '@/components/ui/PlatformIcon';
 import { USER_STATUSES, LOOKING_FOR_OPTIONS } from '@/lib/constants';
+import { track } from '@/lib/analytics';
 
 // Status별 커버 배너 그라데이션 (카드 상단 80px)
 const COVER_GRADIENT: Record<string, string> = {
@@ -113,6 +114,11 @@ export function PersonCard({
       {/* Cover banner + round avatar (clickable → /people/[id]) */}
       <Link
         href={`/people/${person.id}`}
+        onClick={() => track('people_card_click', {
+          target_id: person.id,
+          target_status: person.status ?? 'unknown',
+          connection_status: connStatus ?? 'none',
+        })}
         style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}
       >
         <div style={{

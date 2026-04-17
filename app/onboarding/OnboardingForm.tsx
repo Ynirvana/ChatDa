@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/Button';
 import { PlatformIcon } from '@/components/ui/PlatformIcon';
 import { NationalityCombobox } from '@/components/NationalityCombobox';
 import { LookingForPicker } from '@/components/LookingForPicker';
+import { track } from '@/lib/analytics';
 
 type InitialData = {
   name: string;
@@ -89,6 +90,14 @@ export default function OnboardingForm({
     });
 
     if (res.ok) {
+      track('onboarding_complete', {
+        returning: isReturning,
+        status: form.status,
+        looking_for_count: form.lookingFor.length,
+        has_photo: !!profileImage,
+        has_bio: !!form.bio.trim(),
+        social_count: links.length,
+      });
       router.push('/people');
     } else {
       setLoading(false);

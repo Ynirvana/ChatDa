@@ -9,6 +9,11 @@ import {
 } from '@/lib/constants';
 import { NationalityCombobox } from '@/components/NationalityCombobox';
 import { FilterSelect, type FilterOption } from '@/components/FilterSelect';
+import { track } from '@/lib/analytics';
+
+const trackFilter = (type: string, value: string) => {
+  if (value) track('people_filter_apply', { filter_type: type, value });
+};
 
 export default function PeopleClient({
   users,
@@ -55,6 +60,7 @@ export default function PeopleClient({
       body: JSON.stringify({ recipient_id: recipientId }),
     });
     if (!res.ok) throw new Error('Failed');
+    track('connect_request_send', { source: 'people_card', recipient_id: recipientId });
     router.refresh();
   };
 
@@ -196,43 +202,43 @@ export default function PeopleClient({
           }}>
             <FilterSelect
               value={location}
-              onChange={setLocation}
+              onChange={v => { setLocation(v); trackFilter('location', v); }}
               options={locationOpts}
               placeholder="Any location"
             />
             {/* Nationality는 197개라 검색 필요 → 기존 Combobox 유지 (variant) */}
             <NationalityCombobox
               value={nationality}
-              onChange={setNationality}
+              onChange={v => { setNationality(v); trackFilter('nationality', v); }}
               placeholder="Any nationality"
             />
             <FilterSelect
               value={status}
-              onChange={setStatus}
+              onChange={v => { setStatus(v); trackFilter('status', v); }}
               options={statusOpts}
               placeholder="Everyone"
             />
             <FilterSelect
               value={offer}
-              onChange={setOffer}
+              onChange={v => { setOffer(v); trackFilter('offer', v); }}
               options={offerOpts}
               placeholder="What they offer"
             />
             <FilterSelect
               value={language}
-              onChange={setLanguage}
+              onChange={v => { setLanguage(v); trackFilter('language', v); }}
               options={languageOpts}
               placeholder="Any language"
             />
             <FilterSelect
               value={motivation}
-              onChange={setMotivation}
+              onChange={v => { setMotivation(v); trackFilter('motivation', v); }}
               options={motivationOpts}
               placeholder="What brings them"
             />
             <FilterSelect
               value={social}
-              onChange={setSocial}
+              onChange={v => { setSocial(v); trackFilter('social', v); }}
               options={socialOpts}
               placeholder="Any social"
             />
