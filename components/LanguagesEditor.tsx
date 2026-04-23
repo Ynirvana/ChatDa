@@ -1,9 +1,9 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useCallback, useState } from 'react';
 import { SPOKEN_LANGUAGES, LANGUAGE_LEVELS } from '@/lib/constants';
 import { FilterSelect, type FilterOption } from '@/components/FilterSelect';
+import { useProfileEdit } from './ProfileEditProvider';
 
 interface Lang { language: string; level: string; }
 
@@ -20,12 +20,9 @@ const levelOpts: FilterOption[] = [
 ];
 
 export function LanguagesEditor({ initial }: { initial: Lang[] }) {
-  const router = useRouter();
   const [langs, setLangs] = useState<Lang[]>(initial);
   const [selLang, setSelLang] = useState('');
   const [selLevel, setSelLevel] = useState('');
-  const [saving, setSaving] = useState(false);
-  const [dirty, setDirty] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
 
   const alreadyAdded = new Set(langs.map(l => l.language));
@@ -37,44 +34,38 @@ export function LanguagesEditor({ initial }: { initial: Lang[] }) {
   const add = () => {
     if (!selLang || !selLevel) return;
     setLangs(prev => [...prev, { language: selLang, level: selLevel }]);
-    setDirty(true);
     setSelLang('');
     setSelLevel('');
   };
 
   const remove = (language: string) => {
     setLangs(prev => prev.filter(l => l.language !== language));
-    setDirty(true);
   };
 
-  // 드롭다운에서 언어+레벨 선택만 하고 "+ Add" 안 누른 상태도 저장 대상으로 인식
+  // 드롭다운에서 언어+레벨 선택만 하고 "+ Add" 안 누른 상태도 dirty로 인식
   const hasPendingAdd = !!(selLang && selLevel && !alreadyAdded.has(selLang));
-  const canSave = dirty || hasPendingAdd;
+  const initialKey = initial.map(l => `${l.language}:${l.level}`).sort().join(',');
+  const currentKey = langs.map(l => `${l.language}:${l.level}`).sort().join(',');
+  const dirty = initialKey !== currentKey || hasPendingAdd;
 
-  const save = async () => {
-    setSaving(true);
-    try {
-      // pending 선택이 있으면 자동으로 리스트에 포함
-      const final = hasPendingAdd
-        ? [...langs, { language: selLang, level: selLevel }]
-        : langs;
-      const res = await fetch('/api/users/me', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ languages: final }),
-      });
-      if (!res.ok) throw new Error();
+  const save = useCallback(async () => {
+    const final = hasPendingAdd
+      ? [...langs, { language: selLang, level: selLevel }]
+      : langs;
+    const res = await fetch('/api/users/me', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ languages: final }),
+    });
+    if (!res.ok) throw new Error('Failed to save languages');
+    if (hasPendingAdd) {
       setLangs(final);
       setSelLang('');
       setSelLevel('');
-      setDirty(false);
-      router.refresh();
-    } catch {
-      alert('Failed to save languages');
-    } finally {
-      setSaving(false);
     }
-  };
+  }, [langs, selLang, selLevel, hasPendingAdd]);
+
+  useProfileEdit('languages', dirty, save);
 
   const canAdd = availableOpts.length > 1;
 
@@ -210,22 +201,6 @@ export function LanguagesEditor({ initial }: { initial: Lang[] }) {
         </>
       )}
 
-      <button
-        onClick={save}
-        disabled={!canSave || saving}
-        style={{
-          marginTop: 12,
-          padding: '11px 24px', borderRadius: 999, border: 'none',
-          fontSize: 13, fontWeight: 800,
-          cursor: saving ? 'wait' : !canSave ? 'not-allowed' : 'pointer',
-          background: !canSave ? 'rgba(45, 24, 16, .08)' : 'linear-gradient(135deg, #FF6B5B, #E84393)',
-          color: !canSave ? 'rgba(45, 24, 16, .35)' : '#fff',
-          fontFamily: 'inherit',
-          boxShadow: !canSave ? 'none' : '0 4px 14px rgba(255, 107, 91, .3)',
-        }}
-      >
-        {saving ? 'Saving...' : 'Save languages'}
-      </button>
     </div>
   );
 }

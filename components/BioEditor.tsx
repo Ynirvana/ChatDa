@@ -1,32 +1,24 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useCallback, useState } from 'react';
+import { useProfileEdit } from './ProfileEditProvider';
 
 const BIO_MAX = 100;
 
 export function BioEditor({ initial }: { initial: string | null }) {
-  const router = useRouter();
   const [value, setValue] = useState(initial ?? '');
-  const [saving, setSaving] = useState(false);
   const dirty = (value ?? '') !== (initial ?? '');
 
-  const save = async () => {
-    setSaving(true);
-    try {
-      const res = await fetch('/api/users/me', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ bio: value.trim() || null }),
-      });
-      if (!res.ok) throw new Error();
-      router.refresh();
-    } catch {
-      alert('Failed to save bio');
-    } finally {
-      setSaving(false);
-    }
-  };
+  const save = useCallback(async () => {
+    const res = await fetch('/api/users/me', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ bio: value.trim() || null }),
+    });
+    if (!res.ok) throw new Error('Failed to save bio');
+  }, [value]);
+
+  useProfileEdit('bio', dirty, save);
 
   return (
     <div>
@@ -49,26 +41,9 @@ export function BioEditor({ initial }: { initial: string | null }) {
           boxShadow: '0 1px 4px rgba(45, 24, 16, .04)',
         }}
       />
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
-        <p style={{ fontSize: 11, color: 'rgba(45, 24, 16, .45)' }}>
-          {value.length}/{BIO_MAX}
-        </p>
-        <button
-          onClick={save}
-          disabled={!dirty || saving}
-          style={{
-            padding: '8px 20px', borderRadius: 999, border: 'none',
-            fontSize: 12, fontWeight: 800,
-            cursor: saving ? 'wait' : !dirty ? 'not-allowed' : 'pointer',
-            background: !dirty ? 'rgba(45, 24, 16, .08)' : 'linear-gradient(135deg, #FF6B5B, #E84393)',
-            color: !dirty ? 'rgba(45, 24, 16, .35)' : '#fff',
-            fontFamily: 'inherit',
-            boxShadow: !dirty ? 'none' : '0 3px 10px rgba(255, 107, 91, .28)',
-          }}
-        >
-          {saving ? 'Saving...' : 'Save'}
-        </button>
-      </div>
+      <p style={{ fontSize: 11, color: 'rgba(45, 24, 16, .45)', marginTop: 8 }}>
+        {value.length}/{BIO_MAX}
+      </p>
     </div>
   );
 }

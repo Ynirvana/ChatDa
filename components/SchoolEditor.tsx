@@ -1,41 +1,30 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useCallback, useState } from 'react';
 import { SchoolCombobox } from '@/components/SchoolCombobox';
+import { useProfileEdit } from './ProfileEditProvider';
 
 export function SchoolEditor({ initial }: { initial: string | null }) {
-  const router = useRouter();
   const [value, setValue] = useState(initial ?? '');
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   const dirty = (value.trim() || '') !== (initial?.trim() || '');
 
-  const save = async () => {
+  const save = useCallback(async () => {
     if (!value.trim()) {
-      setError('School is required for students');
-      return;
+      throw new Error('School is required for students');
     }
-    setSaving(true);
-    setError(null);
-    try {
-      const res = await fetch('/api/users/me', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ school: value.trim() }),
-      });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({})) as { detail?: string };
-        throw new Error(body.detail ?? 'Failed');
-      }
-      router.refresh();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to save');
-    } finally {
-      setSaving(false);
+    const res = await fetch('/api/users/me', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ school: value.trim() }),
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({})) as { detail?: string };
+      throw new Error(body.detail ?? 'Failed to save school');
     }
-  };
+  }, [value]);
+
+  useProfileEdit('school', dirty, save);
 
   return (
     <div>
@@ -50,25 +39,6 @@ export function SchoolEditor({ initial }: { initial: string | null }) {
         onChange={setValue}
         placeholder="e.g. Yonsei University, SKKU, or type your own"
       />
-      {error && (
-        <p style={{ fontSize: 12, color: '#E84F3D', marginTop: 8, fontWeight: 700 }}>{error}</p>
-      )}
-      <button
-        onClick={save}
-        disabled={!dirty || saving}
-        style={{
-          marginTop: 12,
-          padding: '10px 22px', borderRadius: 999, border: 'none',
-          fontSize: 13, fontWeight: 800,
-          cursor: saving ? 'wait' : !dirty ? 'not-allowed' : 'pointer',
-          background: !dirty ? 'rgba(45, 24, 16, .08)' : 'linear-gradient(135deg, #FF6B5B, #E84393)',
-          color: !dirty ? 'rgba(45, 24, 16, .35)' : '#fff',
-          fontFamily: 'inherit',
-          boxShadow: !dirty ? 'none' : '0 4px 12px rgba(255, 107, 91, .28)',
-        }}
-      >
-        {saving ? 'Saving...' : 'Save'}
-      </button>
     </div>
   );
 }

@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useCallback, useState } from 'react';
 import { TAGS } from '@/lib/constants';
+import { useProfileEdit } from './ProfileEditProvider';
 
 interface Tag {
   tag: string;
@@ -39,10 +39,7 @@ const CATEGORIES: {
 ];
 
 export function TagEditor({ initial }: { initial: Tag[] }) {
-  const router = useRouter();
   const [tags, setTags] = useState<Tag[]>(initial);
-  const [saving, setSaving] = useState(false);
-  const [dirty, setDirty] = useState(false);
   const [expanded, setExpanded] = useState<Record<Category, boolean>>({
     can_do: false,
     looking_for: false,
@@ -59,20 +56,21 @@ export function TagEditor({ initial }: { initial: Tag[] }) {
 
   const countIn = (cat: Category) => tags.filter(t => t.category === cat).length;
 
+  const initialKey = initial.map(t => `${t.category}:${t.tag}`).sort().join(',');
+  const currentKey = tags.map(t => `${t.category}:${t.tag}`).sort().join(',');
+  const dirty = initialKey !== currentKey;
+
   const toggle = (tag: string, category: Category) => {
     setError(null);
     setTags(prev => {
       const exists = prev.some(t => t.tag === tag && t.category === category);
       if (exists) {
-        setDirty(true);
         return prev.filter(t => !(t.tag === tag && t.category === category));
       }
-      // Adding: check cap
       if (countIn(category) >= TAG_CAP) {
         setError(`Max ${TAG_CAP} tags per category — remove one first`);
         return prev;
       }
-      setDirty(true);
       return [...prev, { tag, category }];
     });
   };
@@ -95,31 +93,22 @@ export function TagEditor({ initial }: { initial: Tag[] }) {
     setTags(prev => [...prev, { tag: raw, category }]);
     setCustomInput(p => ({ ...p, [category]: '' }));
     setCustomOpen(p => ({ ...p, [category]: false }));
-    setDirty(true);
     setError(null);
   };
 
-  const save = async () => {
-    setSaving(true);
-    setError(null);
-    try {
-      const res = await fetch('/api/users/tags', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tags }),
-      });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({})) as { detail?: string; error?: string };
-        throw new Error(body.detail ?? body.error ?? 'Failed');
-      }
-      setDirty(false);
-      router.refresh();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to save tags');
-    } finally {
-      setSaving(false);
+  const save = useCallback(async () => {
+    const res = await fetch('/api/users/tags', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tags }),
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({})) as { detail?: string; error?: string };
+      throw new Error(body.detail ?? body.error ?? 'Failed to save tags');
     }
-  };
+  }, [tags]);
+
+  useProfileEdit('tags', dirty, save);
 
   return (
     <div>
@@ -339,23 +328,6 @@ export function TagEditor({ initial }: { initial: Tag[] }) {
           {error}
         </p>
       )}
-
-      <button
-        onClick={save}
-        disabled={!dirty || saving}
-        style={{
-          marginTop: 8,
-          padding: '12px 28px', borderRadius: 999, border: 'none',
-          fontSize: 14, fontWeight: 800,
-          cursor: saving ? 'wait' : !dirty ? 'not-allowed' : 'pointer',
-          background: !dirty ? 'rgba(45, 24, 16, .08)' : 'linear-gradient(135deg, #FF6B5B, #E84393)',
-          color: !dirty ? 'rgba(45, 24, 16, .35)' : '#fff',
-          fontFamily: 'inherit',
-          boxShadow: !dirty ? 'none' : '0 4px 14px rgba(255, 107, 91, .3)',
-        }}
-      >
-        {saving ? 'Saving...' : 'Save Tags'}
-      </button>
     </div>
   );
 }

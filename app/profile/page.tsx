@@ -22,6 +22,7 @@ import { PrivacyToggle } from '@/components/PrivacyToggle';
 import { PhotosEditor } from '@/components/PhotosEditor';
 import { ShareLinkCard } from '@/components/ShareLinkCard';
 import { PlatformIcon } from '@/components/ui/PlatformIcon';
+import { ProfileEditProvider } from '@/components/ProfileEditProvider';
 
 const statusStyle: Record<string, { label: string; color: string; bg: string }> = {
   pending:   { label: 'Pending',   color: '#C68600',  bg: 'rgba(255, 193, 7, .1)' },
@@ -50,6 +51,7 @@ export default async function ProfilePage() {
       <Orb size={400} color="rgba(255, 140, 120, .15)" top={-50} left={-100} />
 
       <div style={{ maxWidth: 600, margin: '0 auto', padding: '40px 24px 80px', position: 'relative', zIndex: 1 }}>
+        <ProfileEditProvider>
 
         {/* Completeness bar */}
         <ProfileCompleteness profile={profile} />
@@ -304,6 +306,7 @@ export default async function ProfilePage() {
           );
         })()}
         </>}
+        </ProfileEditProvider>
       </div>
     </div>
   );

@@ -1,24 +1,22 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useCallback, useState } from 'react';
 import { INTERESTS, INTERESTS_MAX } from '@/lib/constants';
+import { useProfileEdit } from './ProfileEditProvider';
 
 const COLOR = '#6C5CE7';
 
 export function InterestsEditor({ initial }: { initial: string[] }) {
-  const router = useRouter();
   const [selected, setSelected] = useState<string[]>(initial);
   const [expanded, setExpanded] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [dirty, setDirty] = useState(false);
 
   const atMax = selected.length >= INTERESTS_MAX;
   const selectedSet = new Set(selected);
   const available = INTERESTS.filter(i => !selectedSet.has(i));
 
+  const dirty = selected.join(',') !== initial.join(',');
+
   const toggle = (t: string) => {
-    setDirty(true);
     setSelected(prev => {
       if (prev.includes(t)) return prev.filter(x => x !== t);
       if (atMax) return prev;
@@ -26,23 +24,16 @@ export function InterestsEditor({ initial }: { initial: string[] }) {
     });
   };
 
-  const save = async () => {
-    setSaving(true);
-    try {
-      const res = await fetch('/api/users/me', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ interests: selected }),
-      });
-      if (!res.ok) throw new Error();
-      setDirty(false);
-      router.refresh();
-    } catch {
-      alert('Failed to save interests');
-    } finally {
-      setSaving(false);
-    }
-  };
+  const save = useCallback(async () => {
+    const res = await fetch('/api/users/me', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ interests: selected }),
+    });
+    if (!res.ok) throw new Error('Failed to save interests');
+  }, [selected]);
+
+  useProfileEdit('interests', dirty, save);
 
   return (
     <div>
@@ -148,23 +139,6 @@ export function InterestsEditor({ initial }: { initial: string[] }) {
       }}>
         {selected.length}/{INTERESTS_MAX}{atMax ? ' — max reached' : ''}
       </p>
-
-      <button
-        onClick={save}
-        disabled={!dirty || saving}
-        style={{
-          marginTop: 10,
-          padding: '11px 24px', borderRadius: 999, border: 'none',
-          fontSize: 13, fontWeight: 800,
-          cursor: saving ? 'wait' : !dirty ? 'not-allowed' : 'pointer',
-          background: !dirty ? 'rgba(45, 24, 16, .08)' : 'linear-gradient(135deg, #FF6B5B, #E84393)',
-          color: !dirty ? 'rgba(45, 24, 16, .35)' : '#fff',
-          fontFamily: 'inherit',
-          boxShadow: !dirty ? 'none' : '0 4px 14px rgba(255, 107, 91, .3)',
-        }}
-      >
-        {saving ? 'Saving...' : 'Save interests'}
-      </button>
     </div>
   );
 }

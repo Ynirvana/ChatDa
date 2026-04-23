@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useCallback, useState } from 'react';
+import { useProfileEdit } from './ProfileEditProvider';
 
 const dateInputStyle: React.CSSProperties = {
   background: '#FFFFFF',
@@ -58,7 +58,6 @@ export function StayDatesEditor({
   initialArrived: string | null;
   initialDeparted: string | null;
 }) {
-  const router = useRouter();
   const cfg = getStatusConfig(status);
   const isMonth = cfg.precision === 'month';
 
@@ -69,38 +68,29 @@ export function StayDatesEditor({
 
   const [arrived, setArrived] = useState(initialA);
   const [departed, setDeparted] = useState(initialD);
-  const [saving, setSaving] = useState(false);
-
-  if (status === 'local') return null;
 
   const dirty = arrived !== initialA || departed !== initialD;
 
-  const normalize = (v: string): string | null => {
-    if (!v) return null;
-    // Month input 결과 'YYYY-MM'은 day=01로 붙여서 저장.
-    if (isMonth && /^\d{4}-\d{2}$/.test(v)) return `${v}-01`;
-    return v;
-  };
+  const save = useCallback(async () => {
+    const normalize = (v: string): string | null => {
+      if (!v) return null;
+      if (isMonth && /^\d{4}-\d{2}$/.test(v)) return `${v}-01`;
+      return v;
+    };
+    const res = await fetch('/api/users/me', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        stayArrived: normalize(arrived),
+        stayDeparted: normalize(departed),
+      }),
+    });
+    if (!res.ok) throw new Error('Failed to save dates');
+  }, [arrived, departed, isMonth]);
 
-  const save = async () => {
-    setSaving(true);
-    try {
-      const res = await fetch('/api/users/me', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          stayArrived: normalize(arrived),
-          stayDeparted: normalize(departed),
-        }),
-      });
-      if (!res.ok) throw new Error();
-      router.refresh();
-    } catch {
-      alert('Failed to save');
-    } finally {
-      setSaving(false);
-    }
-  };
+  useProfileEdit('stay-dates', dirty, save);
+
+  if (status === 'local') return null;
 
   return (
     <div>
@@ -134,23 +124,6 @@ export function StayDatesEditor({
           />
         </div>
       </div>
-
-      <button
-        onClick={save}
-        disabled={!dirty || saving}
-        style={{
-          marginTop: 12,
-          padding: '11px 24px', borderRadius: 999, border: 'none',
-          fontSize: 13, fontWeight: 800,
-          cursor: saving ? 'wait' : !dirty ? 'not-allowed' : 'pointer',
-          background: !dirty ? 'rgba(45, 24, 16, .08)' : 'linear-gradient(135deg, #FF6B5B, #E84393)',
-          color: !dirty ? 'rgba(45, 24, 16, .35)' : '#fff',
-          fontFamily: 'inherit',
-          boxShadow: !dirty ? 'none' : '0 4px 14px rgba(255, 107, 91, .3)',
-        }}
-      >
-        {saving ? 'Saving...' : 'Save'}
-      </button>
     </div>
   );
 }
