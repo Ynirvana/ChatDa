@@ -1,17 +1,39 @@
 import Link from 'next/link';
+import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
 import { Orb } from '@/components/ui/Card';
 import { Nav } from '@/components/ui/Nav';
 import { auth } from '@/lib/auth';
 import { isAdminEmail } from '@/lib/admin';
+import { backendFetch, type ApiProfile } from '@/lib/server-api';
+import { RefTracker } from '@/components/RefTracker';
 
 export default async function Home() {
   const session = await auth();
 
-  if (session?.user?.id) redirect('/people');
+  if (session?.user?.id) {
+    // approval_status는 session callback에서 DB-fresh로 채워짐. undefined면 기존 유저(backfill 전) → approved 취급.
+    const status = session.user.approvalStatus ?? 'approved';
+    // 온보딩 여부는 backend/me 가 source of truth (JWT는 stale 가능)
+    let onboarded = false;
+    try {
+      const me = await backendFetch<ApiProfile>('/users/me');
+      onboarded = !!me.onboarding_complete;
+    } catch {
+      // profile 없음 → 신규 유저
+    }
+
+    if (status === 'rejected') redirect('/rejected');
+    if (!onboarded) redirect('/onboarding');
+    if (status === 'pending') redirect('/pending-approval');
+    redirect('/people');
+  }
 
   return (
     <div className="page-bg-light">
+      <Suspense fallback={null}>
+        <RefTracker />
+      </Suspense>
       <Nav user={session?.user} isAdmin={isAdminEmail(session?.user?.email)} light />
 
       {/* Sunset orbs — 크림 베이스 위 워터컬러 같은 웜 톤 */}
@@ -42,7 +64,7 @@ export default async function Home() {
             background: '#FF6B5B',
             boxShadow: '0 0 0 3px rgba(255, 107, 91, .18)',
           }} />
-          Korea&apos;s cross-cultural network
+          Korea&apos;s international community
         </div>
 
         <h1 style={{
@@ -99,9 +121,9 @@ export default async function Home() {
           color: '#3D2416',
           letterSpacing: 0.1,
         }}>
-          Locals · Expats · Visitors · Creators{' '}
+          Exchange students · Expats · Creators · Digital nomads{' '}
           <span style={{ opacity: 0.45, margin: '0 4px' }}>—</span>{' '}
-          already in Korea
+          all in Korea
         </p>
       </section>
     </div>

@@ -4,6 +4,13 @@
 > 감정 목표: 설렘 + 따뜻함 + 여행의 들뜬 느낌.
 > 진행: Phase 1 (랜딩) → Phase 2a (PersonCard) → Phase 2b (/people + /profile + /onboarding) → Phase 3 (backlog).
 
+## 진행 상태 (2026-04-18 업데이트)
+
+- Phase 1–2 ✅ **Prod 배포 완료** (4/17, commit `56a8d6b`)
+- Phase 3 일부 소진:
+  - ✅ **로그인 페이지 라이트 전환** (4/18, dev only — 기존 "전략적 다크 유지" 방침 뒤집음)
+- 남은 Phase 3 다크 페이지: `/admin`, `/host`, `/host/events/[id]/edit`, `/meetups`, `/meetups/[id]`, `/places` — 6개. 기계적 작업, 0.5–1일 추정.
+
 ## 확정된 팔레트 (globals.css `@theme inline`에 토큰 추가)
 
 ```

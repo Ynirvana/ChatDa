@@ -4,6 +4,9 @@ import { isAdminEmail } from '@/lib/admin';
 import { backendFetch } from '@/lib/server-api';
 import { Nav } from '@/components/ui/Nav';
 import AdminClient from './AdminClient';
+import { db } from '@/db';
+import { users as usersTable, approvalHistory } from '@/db/schema';
+import { and, eq, desc } from 'drizzle-orm';
 
 type BackendUser = {
   id: string;
@@ -64,6 +67,69 @@ interface BansPayload {
   }[];
 }
 
+interface InvitesPayload {
+  invites: {
+    id: string;
+    token: string;
+    created_at: string | null;
+    expires_at: string | null;
+    claimed_at: string | null;
+    claimed_by: { id: string; name: string; email: string } | null;
+    note: string | null;
+    state: 'unused' | 'claimed' | 'expired';
+  }[];
+}
+
+async function fetchPendingApprovals() {
+  const pending = await db
+    .select()
+    .from(usersTable)
+    .where(and(eq(usersTable.approvalStatus, 'pending'), eq(usersTable.onboardingComplete, true)))
+    .orderBy(desc(usersTable.createdAt));
+
+  const ids = pending.map(u => u.id);
+  const prevRejections: Record<string, { reason: string | null; rejectedAt: Date }[]> = {};
+  if (ids.length > 0) {
+    const rejHistory = await db
+      .select()
+      .from(approvalHistory)
+      .where(eq(approvalHistory.action, 'rejected'))
+      .orderBy(desc(approvalHistory.createdAt));
+    for (const h of rejHistory) {
+      if (ids.includes(h.userId)) {
+        (prevRejections[h.userId] ??= []).push({ reason: h.reason, rejectedAt: h.createdAt });
+      }
+    }
+  }
+
+  return pending.map(u => ({
+    id: u.id,
+    name: u.name,
+    email: u.email,
+    createdAt: u.createdAt?.toISOString() ?? null,
+    nationality: u.nationality,
+    location: u.location,
+    locationDistrict: u.locationDistrict,
+    status: u.status,
+    school: u.school,
+    gender: u.gender,
+    age: u.age,
+    bio: u.bio,
+    profileImage: u.profileImage,
+    profileImages: u.profileImages,
+    lookingFor: u.lookingFor,
+    lookingForCustom: u.lookingForCustom,
+    languages: u.languages,
+    interests: u.interests,
+    stayArrived: u.stayArrived,
+    stayDeparted: u.stayDeparted,
+    previousRejections: (prevRejections[u.id] ?? []).map(r => ({
+      reason: r.reason,
+      rejectedAt: r.rejectedAt.toISOString(),
+    })),
+  }));
+}
+
 export default async function AdminPage() {
   const session = await auth();
   if (!session?.user?.id) redirect('/login');
@@ -71,10 +137,15 @@ export default async function AdminPage() {
 
   let data: Overview;
   let bans: BansPayload['bans'] = [];
+  let invites: InvitesPayload['invites'] = [];
+  let pendingApprovals: Awaited<ReturnType<typeof fetchPendingApprovals>> = [];
   try {
     data = await backendFetch<Overview>('/admin/overview');
     const bansRes = await backendFetch<BansPayload>('/admin/bans').catch(() => ({ bans: [] } as BansPayload));
     bans = bansRes.bans;
+    const invRes = await backendFetch<InvitesPayload>('/admin/invites').catch(() => ({ invites: [] } as InvitesPayload));
+    invites = invRes.invites;
+    pendingApprovals = await fetchPendingApprovals();
   } catch (e) {
     return (
       <div className="page-bg" style={{ minHeight: '100vh' }}>
@@ -108,6 +179,8 @@ export default async function AdminPage() {
       <AdminClient
         data={enrichedData}
         bans={bans}
+        invites={invites}
+        pendingApprovals={pendingApprovals}
         currentAdminEmail={session.user.email ?? ''}
       />
     </div>

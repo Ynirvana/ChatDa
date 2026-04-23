@@ -4,6 +4,7 @@ import { Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
 import { AnalyticsRouteTracker } from "@/components/AnalyticsRouteTracker";
+import { SessionProviderWrapper } from "@/components/SessionProviderWrapper";
 
 const font = Plus_Jakarta_Sans({
   subsets: ["latin"],
@@ -11,9 +12,12 @@ const font = Plus_Jakarta_Sans({
   variable: "--font-jakarta",
 });
 
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://chatda.life';
+
 export const metadata: Metadata = {
+  metadataBase: new URL(APP_URL),
   title: "ChatDa — See who else is here in Korea",
-  description: "Korea's cross-cultural network. Find your people — locals, expats, visitors, and creators already in Korea.",
+  description: "Korea's international community. Find your people — exchange students, expats, creators, and digital nomads all in Korea.",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
@@ -47,7 +51,9 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${font.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col">
-        {children}
+        <SessionProviderWrapper>
+          {children}
+        </SessionProviderWrapper>
         <ServiceWorkerRegistration />
         {gaId && (
           <>

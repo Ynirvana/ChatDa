@@ -2,9 +2,11 @@
 
 > 배포 전 반드시 확인해야 할 항목. 🔴 = 차단 (수정 전 배포 금지), 🟡 = 강력 권장, 🟢 = 향후 개선.
 >
+> **2026-04-18 업데이트:** DB 비밀번호 로테이션 + `docker-compose.*.yml` → `${DB_PASSWORD}` 변수 치환 + `package.json` scripts / `scripts/migrate-prod.sh` env file sourcing 전환. 루트 `.env`가 유일한 비밀 저장소. 자세한 내역 + 재로테이션 권장 이슈는 [`../deploy/security-followup.md`](../deploy/security-followup.md) 2026-04-18 섹션 참조.
+>
 > **2026-04-15 라이브 후 적용된 것들 (✅ 마크):** 보안 헤더 5종, 백엔드 body size 15 MiB 미들웨어 (JSONResponse 413), CORS 명시 (chatda.life + www), NextAuth `trustHost: true`, `ADMIN_EMAILS` 기반 모더레이션 UI, 입력 검증 (Pydantic `Field(max_length=...)`, 개별 이미지 ~4.5 MiB 제한), `GET /events/{id}` attendees는 인증된 viewer에게만 (프론트 "Sign in to see" 가드의 백엔드 대응).
 >
-> **여전히 갭 (🟡 다음 라운드):** rate limiting (slowapi), 페이지네이션, Sentry 에러 모니터링, dev/prod OAuth 클라이언트 분리, `NEXTAUTH_SECRET` 정기 회전.
+> **여전히 갭 (🟡 다음 라운드):** rate limiting (slowapi), 페이지네이션, Sentry 에러 모니터링, dev/prod OAuth 클라이언트 분리, `NEXTAUTH_SECRET` 정기 회전, `pg_hba.conf` IP 제한, Postgres bind 127.0.0.1, DB role 분리 (superuser → app-limited).
 
 ---
 

@@ -96,14 +96,21 @@ export interface ApiProfile {
   name: string;
   nationality: string | null;
   location: string | null;
+  location_district: string | null;
   status: string | null;
+  school: string | null;
+  gender: string | null;
+  age: number | null;
+  show_personal_info: boolean;
   looking_for: string[];
+  looking_for_custom: string | null;
   stay_arrived: string | null;   // YYYY-MM-DD
   stay_departed: string | null;
   languages: ApiLanguage[];
   interests: string[];
   bio: string | null;
   profile_image: string | null;
+  profile_images: string[];
   onboarding_complete: boolean;
   social_links: { platform: string; url: string }[];
   tags: { tag: string; category: 'can_do' | 'looking_for' }[];

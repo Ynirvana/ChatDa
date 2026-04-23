@@ -15,7 +15,7 @@ export default async function OnboardingPage({
   const isEditMode = edit === '1';
 
   let isReturning = false;
-  let initial: { name: string; nationality: string; location: string; status: string; lookingFor: string[]; bio: string; profileImage: string; socialLinks: Record<string, string> } | undefined;
+  let initial: { name: string; nationality: string; location: string; locationDistrict: string; status: string; school: string; gender: string; age: string; lookingFor: string[]; lookingForCustom: string; bio: string; profileImage: string; profileImages: string[]; socialLinks: Record<string, string> } | undefined;
 
   try {
     const profile = await backendFetch<ApiProfile>('/users/me');
@@ -26,10 +26,16 @@ export default async function OnboardingPage({
         name: profile.name ?? '',
         nationality: profile.nationality ?? '',
         location: profile.location ?? '',
+        locationDistrict: profile.location_district ?? '',
         status: profile.status ?? '',
+        school: profile.school ?? '',
+        gender: profile.gender ?? '',
+        age: profile.age != null ? String(profile.age) : '',
         lookingFor: profile.looking_for ?? [],
+        lookingForCustom: profile.looking_for_custom ?? '',
         bio: profile.bio ?? '',
         profileImage: profile.profile_image ?? '',
+        profileImages: profile.profile_images ?? (profile.profile_image ? [profile.profile_image] : []),
         socialLinks: Object.fromEntries(profile.social_links.map(l => [l.platform, l.url])),
       };
     }

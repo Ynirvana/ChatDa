@@ -4,21 +4,27 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { PlatformIcon } from '@/components/ui/PlatformIcon';
 import { USER_STATUSES, LOOKING_FOR_OPTIONS } from '@/lib/constants';
+import { formatStay } from '@/lib/stay-duration';
 import { track } from '@/lib/analytics';
 
 // Status별 커버 배너 그라데이션 (카드 상단 80px) — 라이트 팔레트 맞춰 선셋 톤으로 조정
 const COVER_GRADIENT: Record<string, string> = {
-  local:          'linear-gradient(135deg, #00B894 0%, #00CEC9 100%)',
-  expat:          'linear-gradient(135deg, #FF6B5B 0%, #E84393 100%)',
-  visitor:        'linear-gradient(135deg, #A29BFE 0%, #6C5CE7 100%)',
-  visiting_soon:  'linear-gradient(135deg, #E84393 0%, #FF6B5B 100%)',
-  visited_before: 'linear-gradient(135deg, #A28B78 0%, #D4C5B9 100%)',
+  local:            'linear-gradient(135deg, #00B894 0%, #00CEC9 100%)',
+  expat:            'linear-gradient(135deg, #FF6B5B 0%, #E84393 100%)',
+  visitor:          'linear-gradient(135deg, #A29BFE 0%, #6C5CE7 100%)',
+  exchange_student: 'linear-gradient(135deg, #FDCB6E 0%, #FFA94D 100%)',
+  worker:           'linear-gradient(135deg, #3B82F6 0%, #6366F1 100%)',
+  // 레거시 — DB에 남아있을 수도 있어 fallback 렌더 유지
+  visiting_soon:    'linear-gradient(135deg, #E84393 0%, #FF6B5B 100%)',
+  visited_before:   'linear-gradient(135deg, #A28B78 0%, #D4C5B9 100%)',
 };
 
 const STATUS_COLORS: Record<string, string> = {
   local: '#00957A',
   expat: '#E84F3D',
   visitor: '#6C5CE7',
+  exchange_student: '#D97706',
+  worker: '#3B82F6',
   visiting_soon: '#E84393',
   visited_before: '#6B5A4D',
 };
@@ -45,8 +51,15 @@ export interface PersonData {
   name: string;
   nationality: string | null;
   location: string | null;
+  location_district: string | null;
   status: string | null;
+  school?: string | null;
+  gender?: string | null;
+  age?: number | null;
   looking_for?: string[];
+  looking_for_custom?: string | null;
+  stay_arrived?: string | null;
+  stay_departed?: string | null;
   languages?: { language: string; level: string }[];
   interests?: string[];
   bio: string | null;
@@ -62,11 +75,22 @@ export function PersonCard({
   person,
   authed,
   onConnect,
+  needsOnboarding = false,
+  lockedHref,
+  unblurred = false,
 }: {
   person: PersonData;
   authed: boolean;
   onConnect?: (recipientId: string) => Promise<void>;
+  /** logged in but onboarding not complete — 미인증처럼 보이되 CTA는 /onboarding으로 */
+  needsOnboarding?: boolean;
+  /** set → all internal Links go here instead of /people/[id] (e.g. awaiting-approval teaser) */
+  lockedHref?: string;
+  /** 사진/이름 블러를 건너뛰고 authed인 것처럼 보이게 (awaiting-approval 첫 3장 teaser 용). 클릭은 여전히 lockedHref로 막힘. */
+  unblurred?: boolean;
 }) {
+  // 시각적으로 authed 취급 (blur/overlay 무시). 클릭/연결 권한은 별도.
+  const visuallyAuthed = authed || unblurred;
   const [busy, setBusy] = useState(false);
   const [connStatus, setConnStatus] = useState(person.connection?.status ?? null);
 
@@ -78,6 +102,10 @@ export function PersonCard({
   const isConnected = connStatus === 'accepted';
   const showSocial = isConnected && person.social_links.length > 0;
   const mutual = person.mutual_count ?? 0;
+  const stay = formatStay(person.status, person.stay_arrived, person.stay_departed);
+  const stayColor = stay?.emphasis === 'upcoming' ? '#E84F3D'
+    : stay?.emphasis === 'past' ? 'rgba(45, 24, 16, .45)'
+    : 'rgba(45, 24, 16, .72)';
 
   const handleConnect = async () => {
     if (!onConnect || busy) return;
@@ -116,7 +144,7 @@ export function PersonCard({
     >
       {/* Cover banner + round avatar (clickable → /people/[id]) */}
       <Link
-        href={`/people/${person.id}`}
+        href={lockedHref ?? `/people/${person.id}`}
         onClick={() => track('people_card_click', {
           target_id: person.id,
           target_status: person.status ?? 'unknown',
@@ -129,7 +157,7 @@ export function PersonCard({
           height: 80,
           background: coverGradient,
         }}>
-          {!authed && (
+          {!visuallyAuthed && (
             <div style={{
               position: 'absolute', inset: 0,
               background: 'rgba(255, 255, 255, .28)',
@@ -154,13 +182,13 @@ export function PersonCard({
                 alt={person.name}
                 style={{
                   width: '100%', height: '100%', objectFit: 'cover',
-                  filter: authed ? 'none' : 'blur(14px)',
+                  filter: visuallyAuthed ? 'none' : 'blur(14px)',
                 }}
               />
             ) : (
               <span style={{
                 fontSize: 32, fontWeight: 900, color: 'rgba(255,255,255,.95)',
-                filter: authed ? 'none' : 'blur(6px)',
+                filter: visuallyAuthed ? 'none' : 'blur(6px)',
               }}>
                 {person.name[0]?.toUpperCase()}
               </span>
@@ -179,7 +207,7 @@ export function PersonCard({
       }}>
         {/* Name + flag */}
         <Link
-          href={`/people/${person.id}`}
+          href={lockedHref ?? `/people/${person.id}`}
           style={{ textDecoration: 'none', color: 'inherit' }}
         >
           <div style={{
@@ -193,8 +221,8 @@ export function PersonCard({
           </div>
         </Link>
 
-        {/* Status + Location 한 줄 */}
-        {(statusMeta || person.location) && (
+        {/* Status · Location · Stay 한 줄 통합 (flex wrap으로 좁은 카드에선 자연스럽게 내려감) */}
+        {(statusMeta || person.location || (visuallyAuthed && stay)) && (
           <div style={{
             display: 'flex', alignItems: 'center', gap: 8,
             flexWrap: 'wrap', justifyContent: 'center',
@@ -213,14 +241,36 @@ export function PersonCard({
               <span style={{
                 fontSize: 11, color: 'rgba(45, 24, 16, .72)', fontWeight: 700,
               }}>
-                📍 {person.location}
+                📍 {person.location}{person.location_district ? ` · ${person.location_district}` : ''}
+              </span>
+            )}
+            {visuallyAuthed && stay && (
+              <span style={{
+                fontSize: 11, fontWeight: stay.emphasis === 'upcoming' ? 800 : 700,
+                color: stayColor,
+              }}>
+                🗓️ {stay.primary}
               </span>
             )}
           </div>
         )}
 
+        {/* School badge — Student 네트워크 트리거 */}
+        {visuallyAuthed && person.school && person.status === 'exchange_student' && (
+          <p style={{
+            fontSize: 11, fontWeight: 700,
+            color: '#D97706', marginBottom: 8,
+            display: '-webkit-box',
+            WebkitLineClamp: 1,
+            WebkitBoxOrient: 'vertical',
+            overflow: 'hidden',
+          }}>
+            🎓 {person.school}
+          </p>
+        )}
+
         {/* Bio */}
-        {authed ? (
+        {visuallyAuthed ? (
           person.bio && (
             <p style={{
               fontSize: 13, color: 'rgba(45, 24, 16, .78)', lineHeight: 1.5,
@@ -242,40 +292,39 @@ export function PersonCard({
           </p>
         )}
 
-        {/* looking_for motivation pills (최대 2개 + +N) */}
-        {authed && (person.looking_for?.length ?? 0) > 0 && (
-          <div style={{
-            display: 'flex', flexWrap: 'wrap', gap: 4,
-            justifyContent: 'center', marginBottom: 10,
-          }}>
-            {person.looking_for!.slice(0, 2).map(id => {
-              const opt = LOOKING_FOR_OPTIONS.find(o => o.id === id);
-              if (!opt) return null;
-              return (
-                <span key={id} style={{
-                  padding: '3px 9px', borderRadius: 999,
-                  fontSize: 10, fontWeight: 700,
-                  background: 'rgba(255, 107, 91, .11)',
-                  border: '1px solid rgba(255, 107, 91, .3)',
-                  color: '#3D2416',
-                  display: 'inline-flex', alignItems: 'center', gap: 4,
-                }}>
-                  <span style={{ fontSize: 11 }}>{opt.emoji}</span>
-                  {opt.label}
-                </span>
-              );
-            })}
-            {person.looking_for!.length > 2 && (
+        {/* 모티브 1개만 노출 — 우선순위: 첫 preset > custom. +N 없음. */}
+        {visuallyAuthed && (() => {
+          const firstPreset = (person.looking_for ?? [])
+            .map(id => LOOKING_FOR_OPTIONS.find(o => o.id === id))
+            .find((o): o is typeof LOOKING_FOR_OPTIONS[number] => !!o);
+          const customText = person.looking_for_custom?.trim();
+          const item = firstPreset
+            ? { kind: 'preset' as const, emoji: firstPreset.emoji, label: firstPreset.label }
+            : customText
+              ? { kind: 'custom' as const, emoji: '✨', label: customText }
+              : null;
+          if (!item) return null;
+          return (
+            <div style={{
+              display: 'flex', justifyContent: 'center', marginBottom: 10,
+            }}>
               <span style={{
-                padding: '3px 8px', borderRadius: 999,
+                padding: '3px 9px', borderRadius: 999,
                 fontSize: 10, fontWeight: 700,
-                color: 'rgba(45, 24, 16, .4)',
+                background: 'rgba(255, 107, 91, .11)',
+                border: item.kind === 'custom'
+                  ? '1px dashed rgba(255, 107, 91, .45)'
+                  : '1px solid rgba(255, 107, 91, .3)',
+                color: '#3D2416',
+                display: 'inline-flex', alignItems: 'center', gap: 4,
+                maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
               }}>
-                +{person.looking_for!.length - 2}
+                <span style={{ fontSize: 11 }}>{item.emoji}</span>
+                {item.label}
               </span>
-            )}
-          </div>
-        )}
+            </div>
+          );
+        })()}
 
         {/* Mutual count */}
         {authed && mutual > 0 && (
@@ -362,7 +411,10 @@ export function PersonCard({
             </button>
           )
         ) : (
-          <Link href="/login" style={{ textDecoration: 'none' }}>
+          <Link
+            href={lockedHref ?? (needsOnboarding ? '/onboarding' : '/join')}
+            style={{ textDecoration: 'none' }}
+          >
             <div style={{
               padding: '12px 0', textAlign: 'center', borderRadius: 999,
               fontSize: 12, fontWeight: 700,
@@ -370,7 +422,9 @@ export function PersonCard({
               color: '#fff',
               boxShadow: '0 4px 12px rgba(255, 107, 91, .25)',
             }}>
-              Sign up to connect →
+              {lockedHref
+                ? 'Connect after approval →'
+                : needsOnboarding ? 'Complete profile →' : 'Sign up to connect →'}
             </div>
           </Link>
         )}

@@ -1,6 +1,11 @@
 # 환경 변수 관리 전략
 
 > 로컬 개발 / 프로덕션 환경 분리. **하나도 헷갈릴 일 없게** 파일 위치와 우선순위를 못 박는다.
+>
+> **2026-04-18 추가**: 프로젝트 루트 `.env` (gitignored)가 신설됨 — **docker-compose 변수 저장소 전용**.
+> `DB_PASSWORD=<강한_비밀번호>` 한 줄만 들어감. `docker-compose*.yml`의 `${DB_PASSWORD:?...}`가 이 파일에서 읽음.
+> Next.js도 lowest priority로 읽지만 서버 코드에선 안 씀 (무해).
+> 자세히: [`../deploy/architecture.md`](../deploy/architecture.md) § 환경변수 파일.
 
 ---
 
@@ -10,6 +15,7 @@
 2. **dev/prod는 물리적으로 다른 파일** — `.env.local` (dev) ↔ `.env.production.local` (prod). 환경 분리는 파일 분리로 해결
 3. **NEXTAUTH_SECRET은 dev/prod 다른 값** — prod 새로 생성. JWT 키가 같으면 dev에서 발급한 토큰이 prod에서 통과함 (위험)
 4. **`.env.example`만 커밋** — 새 개발자/배포자는 이걸 보고 자기 환경 만듦
+5. **DB 비밀번호는 한 곳에 — 루트 `.env`** (2026-04-18 추가). 다른 `.env*` 파일들의 `DATABASE_URL` 안의 비밀번호 부분은 이 값과 **반드시 동일**해야 함 (직접 복붙 또는 쉘 치환)
 
 ---
 

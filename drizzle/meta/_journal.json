@@ -127,6 +127,69 @@
       "when": 1776354938715,
       "tag": "0017_orange_the_stranger",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1776433897402,
+      "tag": "0018_new_payback",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1776438896030,
+      "tag": "0019_chilly_warpath",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1776441299984,
+      "tag": "0020_opposite_whizzer",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1776441764978,
+      "tag": "0021_workable_redwing",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1776447416428,
+      "tag": "0022_dusty_killer_shrike",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1776447516271,
+      "tag": "0023_rare_plazm",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1776448241158,
+      "tag": "0024_unique_wallow",
+      "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1776478865312,
+      "tag": "0025_omniscient_kitty_pryde",
+      "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1776655920810,
+      "tag": "0026_slim_power_man",
+      "breakpoints": true
     }
   ]
 }

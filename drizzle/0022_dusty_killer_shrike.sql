@@ -1,0 +1,1 @@
+ALTER TABLE "users" ADD COLUMN "show_personal_info" boolean DEFAULT true NOT NULL;

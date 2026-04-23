@@ -1,0 +1,1 @@
+ALTER TABLE "invite_tokens" ADD COLUMN "invite_number" serial NOT NULL;

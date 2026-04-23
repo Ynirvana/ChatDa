@@ -1,7 +1,23 @@
-# 프로덕션 아키텍처 (2026-04-17 기준)
+# 프로덕션 아키텍처 (2026-04-18 기준)
 
-> **최근 변경 (v4 Step 1+2 배포 완료, 2026-04-17):**
-> - 마이그레이션 `0014`~`0017` 전부 prod 적용:
+> **미배포 변경 (2026-04-18, dev only — prod는 0017 상태 유지):**
+> - 마이그레이션 `0018`~`0021` 생성·dev 적용됨, **prod 미적용**:
+>   - `0018`: `users.country_of_residence text NOT NULL DEFAULT 'KR'` + `users.looking_for_custom text` (v4 커스텀 모티브)
+>   - `0019`: `users.location_district text` (Seoul 25개 구 sub-pick)
+>   - `0020`: `users.school text` (Student 필수, 네트워크 매칭 축)
+>   - `0021`: `users.gender text` + `users.age integer` (둘 다 nullable — 앱 레벨에서 gender required)
+> - **Docker Compose 비밀번호 변수화**: `POSTGRES_PASSWORD` / `DATABASE_URL` 전부 `${DB_PASSWORD:?...}` 변수 치환. 루트 `.env` 파일이 유일한 비밀 저장소 (gitignored).
+> - **Status 단순화 (앱 레벨)**: 5개 id 유지 (`local` / `expat` / `visitor` / `exchange_student` / 레거시 2개) 중 **피커엔 3개만** 노출 (Student / Visitor / Resident 라벨). Korean nationality → 자동 `local`.
+> - 온보딩 구조 재편: Bio + "What brings you here?" → Step 2 이동. Step 1은 최대 7필드(사진/이름/gender/age/nationality/status[/school if student]/location/socials).
+> - `/users/directory` + `/users/{id}/profile` + `/users/me` 응답에 `country_of_residence`, `looking_for_custom`, `location_district`, `school`, `gender`, `age`, `stay_*` 필드 추가
+> - People 카드·상세에 Age·Gender 메타, 체류 라인(stay-duration.ts), School pill, 커스텀 모티브 dashed 구분 렌더
+> - `/login` 라이트 테마 전환 (기존 "전략적 다크 유지" 뒤집음)
+> - DB 비밀번호 로테이션 (`chatda:chatda` → 강한 값) — transcript 노출 이슈로 **재로테이션 권장**
+>
+> **배포 체크리스트**: [`../tasks/2026-04-18/session-report.md`](../tasks/2026-04-18/session-report.md) 참조.
+
+> **이전 변경 (v4 Step 1+2 배포 완료, 2026-04-17):**
+> - 마이그레이션 `0014`~`0017` prod 적용:
 >   - `0014`: `users.location` (date nullable)
 >   - `0015`: `status` enum → text 전환 + 6→5 값 매핑 + `users.looking_for text[]`
 >   - `0016`: `users.stay_arrived/stay_departed` (date), `users.languages` (jsonb), `users.interests` (text[])
@@ -11,6 +27,7 @@
 > - 필터 UI 네이티브 select → 커스텀 `FilterSelect` 교체 (다크 팝업 + 키보드 네비)
 > - Admin 본인/타 admin 삭제 차단 (self-protect)
 > - 온보딩 완료/edit-done 리다이렉트 `/meetups` → `/people`
+> - Light theme (Airbnb 선셋 크림) prod 배포 완료 (commit `56a8d6b`)
 
 ## 전체 데이터 흐름
 
@@ -74,7 +91,7 @@ chatda-db-1 (Postgres 16-alpine, Docker, 볼륨 postgres_data)
 - **CMD**: `uvicorn main:app --host 0.0.0.0 --port 8000 --workers 2`
 - **포트 매핑**: `8000:8000`
 - **env_file**: `backend/.env.production`
-- **override env**: `DATABASE_URL=postgresql+asyncpg://chatda:chatda@db:5432/chatda`
+- **override env**: `DATABASE_URL=postgresql+asyncpg://chatda:${DB_PASSWORD}@db:5432/chatda` (2026-04-18부터 변수 치환)
 - **healthcheck**: Python `urllib.request.urlopen('http://localhost:8000/docs')`
 - **resource limits**: mem 512m / cpu 1.0
 - **restart**: `unless-stopped`
@@ -82,11 +99,14 @@ chatda-db-1 (Postgres 16-alpine, Docker, 볼륨 postgres_data)
 ### `chatda-db-1` (공유 Postgres)
 - **이미지**: `postgres:16-alpine`
 - **포트 매핑**: `5434:5432`
-- **env**: `POSTGRES_USER=chatda`, `POSTGRES_PASSWORD=chatda`, `POSTGRES_DB=chatda`
+- **env**: `POSTGRES_USER=chatda`, `POSTGRES_PASSWORD=${DB_PASSWORD}` (2026-04-18부터 변수 치환), `POSTGRES_DB=chatda`
 - **볼륨**: `postgres_data` (docker named volume, 영구)
 - **init 스크립트**: `db/init/01-create-dev-db.sql` (볼륨 신규 생성 시에만 실행)
 - **healthcheck**: `pg_isready -U chatda -d chatda`
 - **restart**: `unless-stopped`
+
+> ⚠️ **`DB_PASSWORD` 변수 주입**: `docker compose up` 실행 디렉토리의 `.env` 파일이 자동 읽힘.
+> 루트 `.env`에 `DB_PASSWORD=<강한_비밀번호>` 한 줄 필요. 없으면 `compose up` 즉시 실패 (의도된 fail-fast).
 
 ---
 
@@ -178,16 +198,17 @@ ingress:
 
 ## 환경변수 파일
 
-**Frontend** (`/home/dykim/project/ChatDa/`):
+**프로젝트 루트** (`/home/dykim/project/ChatDa/`):
+- `.env` (gitignored, **2026-04-18 신규**) — **docker-compose 변수 저장소**. `DB_PASSWORD` 한 줄. Next.js도 lowest priority로 읽지만 서버 코드에서 사용 안 함.
 - `.env.example` (커밋됨, 키만)
-- `.env.local` (gitignored, dev용, 값 채움)
-- `.env.production.local` (gitignored, prod용, 값 채움)
+- `.env.local` (gitignored, dev용 Next.js — DATABASE_URL은 `chatda_dev` 가리킴)
+- `.env.production.local` (gitignored, prod용 Next.js + Drizzle host-based migration — DATABASE_URL은 `chatda` 가리킴)
 
 **Backend** (`/home/dykim/project/ChatDa/backend/`):
 - `.env.example` (커밋됨)
 - `.env` (gitignored, settings.py 기본 로드)
-- `.env.local` (gitignored, dev용)
-- `.env.production` (gitignored, prod용)
+- `.env.local` (gitignored, dev용 uvicorn)
+- `.env.production` (gitignored, prod용 — docker-compose `env_file:`로 주입)
 
 **필수 키:**
 
@@ -241,27 +262,33 @@ Backend 공통: `DATABASE_URL`, `NEXTAUTH_SECRET`
 
 ---
 
-## `users` 테이블 현재 스키마 (2026-04-17)
+## `users` 테이블 현재 스키마 (2026-04-18, dev 기준 — prod는 0017까지만)
 
 | 컬럼 | 타입 | 비고 |
 |---|---|---|
 | id | text PK | nanoid |
 | name, email, google_id | text | 기본 |
-| nationality | text | 197개 형용사 중 1 (lib/nationalities.ts) |
+| nationality | text | 196개 형용사 중 1 (lib/nationalities.ts, 유명도 순 22개 + 알파벳 순 나머지) |
 | location | text | 한국 광역 14개 + Other (lib/constants.LOCATIONS) |
-| status | text | `local` / `expat` / `visitor` / `visiting_soon` / `visited_before` |
-| looking_for | text[] NOT NULL '{}' | Step 1 "What brings you here?" 최대 3개 (lib/constants.LOOKING_FOR_OPTIONS) |
-| stay_arrived | date nullable | Step 2, status별 분기 (Local은 표시 X) |
-| stay_departed | date nullable | 동일 |
+| location_district | text nullable | **0019** — Seoul일 때만 의미 있음, 25개 구 (lib/constants.SEOUL_DISTRICTS, 유명도 순) |
+| country_of_residence | text NOT NULL DEFAULT 'KR' | **0018** — 국가 확장용 미래 축 (현재 전부 'KR'). 쿼리 어디서도 안 씀 |
+| status | text | 앱 id: `local` / `expat` / `visitor` / `exchange_student` / (레거시: `visiting_soon` · `visited_before` · `worker`). 피커 라벨: Student/Visitor/Resident 3개 |
+| school | text nullable | **0020** — status=`exchange_student`일 때 필수 (앱 레벨). KOREAN_UNIVERSITIES 22 프리셋 + free text |
+| gender | text nullable | **0021** — `male` / `female` / `other`. 앱 레벨 required (기존 유저는 null 허용) |
+| age | integer nullable | **0021** — 18–99 (Pydantic ge/le). Optional |
+| looking_for | text[] NOT NULL '{}' | "What brings you here?" 프리셋 id, 최대 3 (lib/constants.LOOKING_FOR_OPTIONS). Step 2로 이동 |
+| looking_for_custom | text nullable | **0018** — ✨ Other 자유 입력 (30자 max). `looking_for` + (has_custom ? 1 : 0) ≤ 3 |
+| stay_arrived | date nullable | Step 2, status별 분기. Expat/Worker는 month 정밀도(day=01 저장) |
+| stay_departed | date nullable | 동일. 모든 non-local status가 arrived+departed 둘 다 입력 가능 |
 | languages | jsonb NOT NULL '[]' | `[{language, level}]` — level: native/fluent/conversational/learning |
 | interests | text[] NOT NULL '{}' | 최대 10 (lib/constants.INTERESTS) |
-| bio | text | 100자 제한 |
+| bio | text | 100자 제한. Step 2로 이동 |
 | profile_image | text | base64 data URL 또는 Google URL |
 | onboarding_complete | boolean default false | |
 | created_at | timestamp | |
 
 ## `platform` enum (social_links.platform)
-`linkedin, instagram, x, tiktok, snapchat, whatsapp, kakao, facebook, threads` — **threads는 2026-04-17 추가 (0017)**. UI 노출은 `PLATFORMS` 순서 (`instagram → threads → x → tiktok → linkedin → facebook`).
+`linkedin, instagram, x, tiktok, snapchat, whatsapp, kakao, facebook, threads` — threads는 2026-04-17 추가 (0017). UI 노출은 `PLATFORMS` 순서 (`facebook → instagram → threads → x → linkedin → tiktok`, 2026-04-18 업데이트).
 
 ---
 

@@ -27,6 +27,28 @@ const labelStyle: React.CSSProperties = {
   letterSpacing: 0.5,
 };
 
+/** status별 라벨 / 입력 정밀도 정의 */
+function getStatusConfig(status: string | null) {
+  // long-term stays: month 정밀도. short-term: day 정밀도.
+  switch (status) {
+    case 'expat':
+      return { arrivedLabel: 'Living here since', departedLabel: 'Planning to leave', precision: 'month' as const };
+    case 'worker':
+      return { arrivedLabel: 'Started work', departedLabel: 'Contract / plan ends', precision: 'month' as const };
+    case 'exchange_student':
+      return { arrivedLabel: 'Semester start', departedLabel: 'Semester end', precision: 'date' as const };
+    case 'visitor':
+      return { arrivedLabel: 'Arrival', departedLabel: 'Departure', precision: 'date' as const };
+    // 레거시
+    case 'visiting_soon':
+      return { arrivedLabel: 'Arriving on', departedLabel: 'Leaving on', precision: 'date' as const };
+    case 'visited_before':
+      return { arrivedLabel: 'Arrived', departedLabel: 'Departed', precision: 'date' as const };
+    default:
+      return { arrivedLabel: 'Arrived', departedLabel: 'Leaving', precision: 'date' as const };
+  }
+}
+
 export function StayDatesEditor({
   status,
   initialArrived,
@@ -37,13 +59,28 @@ export function StayDatesEditor({
   initialDeparted: string | null;
 }) {
   const router = useRouter();
-  const [arrived, setArrived] = useState(initialArrived ?? '');
-  const [departed, setDeparted] = useState(initialDeparted ?? '');
+  const cfg = getStatusConfig(status);
+  const isMonth = cfg.precision === 'month';
+
+  // Month picker면 'YYYY-MM-DD' → 'YYYY-MM'로 trim.
+  const toMonth = (v: string | null) => (v ? v.slice(0, 7) : '');
+  const initialA = isMonth ? toMonth(initialArrived) : (initialArrived ?? '');
+  const initialD = isMonth ? toMonth(initialDeparted) : (initialDeparted ?? '');
+
+  const [arrived, setArrived] = useState(initialA);
+  const [departed, setDeparted] = useState(initialD);
   const [saving, setSaving] = useState(false);
 
   if (status === 'local') return null;
 
-  const dirty = arrived !== (initialArrived ?? '') || departed !== (initialDeparted ?? '');
+  const dirty = arrived !== initialA || departed !== initialD;
+
+  const normalize = (v: string): string | null => {
+    if (!v) return null;
+    // Month input 결과 'YYYY-MM'은 day=01로 붙여서 저장.
+    if (isMonth && /^\d{4}-\d{2}$/.test(v)) return `${v}-01`;
+    return v;
+  };
 
   const save = async () => {
     setSaving(true);
@@ -52,8 +89,8 @@ export function StayDatesEditor({
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          stayArrived: arrived || null,
-          stayDeparted: departed || null,
+          stayArrived: normalize(arrived),
+          stayDeparted: normalize(departed),
         }),
       });
       if (!res.ok) throw new Error();
@@ -65,52 +102,37 @@ export function StayDatesEditor({
     }
   };
 
-  const arrivedLabel = status === 'expat' ? 'Since when?'
-    : status === 'visiting_soon' ? 'When are you arriving?'
-    : status === 'visited_before' ? 'Arrived'
-    : 'Arrived on';
-
-  const showDeparted = status === 'visitor' || status === 'visited_before';
-  const emphasized = status === 'visiting_soon';
-
   return (
     <div>
       <div style={{
         display: 'grid',
-        gridTemplateColumns: showDeparted ? '1fr 1fr' : '1fr',
+        gridTemplateColumns: '1fr 1fr',
         gap: 12,
       }}>
         <div>
-          <label style={{
-            ...labelStyle,
-            color: emphasized ? '#FF6B5B' : 'rgba(45, 24, 16, .6)',
-          }}>
-            {arrivedLabel}
-          </label>
+          <label style={labelStyle}>{cfg.arrivedLabel}</label>
           <input
-            type="date"
+            type={isMonth ? 'month' : 'date'}
             value={arrived}
             onChange={e => setArrived(e.target.value)}
-            style={{
-              ...dateInputStyle,
-              borderColor: emphasized && !arrived ? '#FF6B5B' : 'rgba(45, 24, 16, .15)',
-            }}
+            style={dateInputStyle}
           />
         </div>
-        {showDeparted && (
-          <div>
-            <label style={labelStyle}>
-              {status === 'visited_before' ? 'Departed' : 'Until'}
-            </label>
-            <input
-              type="date"
-              value={departed}
-              onChange={e => setDeparted(e.target.value)}
-              min={arrived || undefined}
-              style={dateInputStyle}
-            />
-          </div>
-        )}
+        <div>
+          <label style={labelStyle}>
+            {cfg.departedLabel}{' '}
+            <span style={{ fontWeight: 500, opacity: 0.6, textTransform: 'none', letterSpacing: 0 }}>
+              (optional)
+            </span>
+          </label>
+          <input
+            type={isMonth ? 'month' : 'date'}
+            value={departed}
+            onChange={e => setDeparted(e.target.value)}
+            min={arrived || undefined}
+            style={dateInputStyle}
+          />
+        </div>
       </div>
 
       {dirty && (

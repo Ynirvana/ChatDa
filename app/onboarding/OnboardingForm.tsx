@@ -2,22 +2,30 @@
 
 import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { LOCATIONS, PLATFORMS, USER_STATUSES } from '@/lib/constants';
+import { useSession } from 'next-auth/react';
+import { LOCATIONS, PLATFORMS, SEOUL_DISTRICTS, USER_STATUSES, SELECTABLE_USER_STATUSES, GENDER_OPTIONS, AGE_MIN, AGE_MAX } from '@/lib/constants';
 import { Orb } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { PlatformIcon } from '@/components/ui/PlatformIcon';
 import { NationalityCombobox } from '@/components/NationalityCombobox';
-import { LookingForPicker } from '@/components/LookingForPicker';
+import { SchoolCombobox } from '@/components/SchoolCombobox';
+import { FilterSelect, type FilterOption } from '@/components/FilterSelect';
 import { track } from '@/lib/analytics';
 
 type InitialData = {
   name: string;
   nationality: string;
   location: string;
+  locationDistrict: string;
   status: string;
+  school: string;
+  gender: string;       // '' | 'male' | 'female' | 'other'
+  age: string;          // input에서 string 관리 후 제출 시 int로 변환
   lookingFor: string[];
+  lookingForCustom: string;
   bio: string;
   profileImage: string;
+  profileImages?: string[];
   socialLinks: Record<string, string>;
 };
 
@@ -31,17 +39,28 @@ export default function OnboardingForm({
   googleImage?: string;
 }) {
   const router = useRouter();
+  const { update: updateSession } = useSession();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(false);
-  const [profileImage, setProfileImage] = useState<string>(
-    initial?.profileImage ?? googleImage ?? ''
-  );
+  const MAX_PHOTOS = 5;
+  const [profileImages, setProfileImages] = useState<string[]>(() => {
+    if (initial?.profileImages && initial.profileImages.length > 0) return initial.profileImages.slice(0, MAX_PHOTOS);
+    if (initial?.profileImage) return [initial.profileImage];
+    if (googleImage) return [googleImage];
+    return [];
+  });
+  const primaryImage = profileImages[0] ?? '';
   const [form, setForm] = useState({
     name: initial?.name ?? '',
     nationality: initial?.nationality ?? '',
     location: initial?.location ?? '',
+    locationDistrict: initial?.locationDistrict ?? '',
     status: initial?.status ?? '',
+    school: initial?.school ?? '',
+    gender: initial?.gender ?? '',
+    age: initial?.age ?? '',
     lookingFor: (initial?.lookingFor ?? []) as string[],
+    lookingForCustom: initial?.lookingForCustom ?? '',
     bio: initial?.bio ?? '',
     socialLinks: initial?.socialLinks ?? ({} as Record<string, string>),
   });
@@ -51,24 +70,58 @@ export default function OnboardingForm({
   );
 
   const set = (key: string, value: string) => setForm(p => ({ ...p, [key]: value }));
-  const setLookingFor = (next: string[]) => setForm(p => ({ ...p, lookingFor: next }));
+  // Korean이면 status='local' 자동 박기 + 다른 국적으로 바꾸면 status 리셋해서 다시 고르게.
+  const setNationality = (v: string) => setForm(p => {
+    if (v === 'Korean') return { ...p, nationality: v, status: 'local' };
+    if (p.nationality === 'Korean' && v !== 'Korean') return { ...p, nationality: v, status: '' };
+    return { ...p, nationality: v };
+  });
   const setLink = (platform: string, url: string) =>
     setForm(p => ({ ...p, socialLinks: { ...p.socialLinks, [platform]: url } }));
 
+  // Bio + motives는 Step 2 (Profile 페이지)로 이동 — Step 1에서 필수 아님
+  // Student 선택 시 school은 필수 (네트워크 효과 트리거)
+  const schoolRequired = form.status === 'exchange_student';
+  const schoolOk = !schoolRequired || form.school.trim().length > 0;
+  // Age는 옵션이지만 입력했으면 범위 검증
+  const ageNum = form.age ? parseInt(form.age, 10) : NaN;
+  const ageOk = !form.age || (Number.isInteger(ageNum) && ageNum >= AGE_MIN && ageNum <= AGE_MAX);
   const canSubmit =
+    profileImages.length >= 1 &&   // Photo 필수 — 1장 이상
     form.name.trim() &&
     form.nationality &&
     form.location &&
     form.status &&
-    form.lookingFor.length >= 1 &&
+    form.gender &&                  // required
+    ageOk &&
+    schoolOk &&
     !loading;
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = ev => setProfileImage((ev.target?.result as string) ?? '');
+    reader.onload = ev => {
+      const data = (ev.target?.result as string) ?? '';
+      if (!data) return;
+      setProfileImages(prev => (prev.length >= MAX_PHOTOS ? prev : [...prev, data]));
+    };
     reader.readAsDataURL(file);
+    // 같은 파일 재선택 가능하게 input value clear
+    e.target.value = '';
+  };
+
+  const removePhoto = (idx: number) => {
+    setProfileImages(prev => prev.filter((_, i) => i !== idx));
+  };
+
+  const makePrimary = (idx: number) => {
+    if (idx === 0) return;
+    setProfileImages(prev => {
+      const next = [...prev];
+      const [picked] = next.splice(idx, 1);
+      return [picked, ...next];
+    });
   };
 
   const handleSubmit = async () => {
@@ -84,7 +137,14 @@ export default function OnboardingForm({
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         ...form,
-        profileImage: profileImage || null,
+        age: form.age ? parseInt(form.age, 10) : null,
+        locationDistrict: form.location === 'Seoul' ? (form.locationDistrict || null) : null,
+        // Student일 때만 school 저장, 그 외엔 null
+        school: form.status === 'exchange_student' ? (form.school.trim() || null) : null,
+        // Bio + motives는 Profile page에서 채움 — onboarding 시엔 기존 값 그대로 전송 (신규 유저는 빈 값)
+        lookingForCustom: form.lookingForCustom.trim() || null,
+        profileImage: primaryImage || null,
+        profileImages,
         socialLinks: links,
       }),
     });
@@ -93,11 +153,13 @@ export default function OnboardingForm({
       track('onboarding_complete', {
         returning: isReturning,
         status: form.status,
-        looking_for_count: form.lookingFor.length,
-        has_photo: !!profileImage,
-        has_bio: !!form.bio.trim(),
+        has_photo: profileImages.length > 0,
+        photo_count: profileImages.length,
+        has_school: !!form.school.trim(),
         social_count: links.length,
       });
+      // JWT refresh — approval_status / onboarding_complete 가 middleware에 반영되도록
+      await updateSession();
       router.push('/people');
     } else {
       setLoading(false);
@@ -144,83 +206,89 @@ export default function OnboardingForm({
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
 
-          {/* Profile photo */}
+          {/* Profile photos — 최대 5장, 첫 장 = primary */}
           <div>
-            <label style={labelStyle}>Profile photo</label>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-              <div
-                onClick={() => fileInputRef.current?.click()}
-                style={{
-                  width: 80, height: 80, borderRadius: '50%', flexShrink: 0,
-                  overflow: 'hidden', cursor: 'pointer', position: 'relative',
-                  border: '3px solid #FFFFFF',
-                  boxShadow: '0 4px 14px rgba(45, 24, 16, .1)',
-                }}
-              >
-                {profileImage ? (
-                  <img src={profileImage} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                ) : (
-                  <div style={{
-                    width: '100%', height: '100%',
-                    background: 'linear-gradient(135deg, #FF6B5B, #E84393)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 28, fontWeight: 900, color: '#fff',
-                  }}>
-                    {form.name?.[0]?.toUpperCase() ?? '?'}
-                  </div>
-                )}
-                <div style={{
-                  position: 'absolute', inset: 0,
-                  background: 'rgba(45, 24, 16, .4)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  opacity: 0,
-                  transition: 'opacity .15s',
-                }}
-                  onMouseEnter={e => (e.currentTarget.style.opacity = '1')}
-                  onMouseLeave={e => (e.currentTarget.style.opacity = '0')}
+            <label style={labelStyle}>
+              Profile photos <span style={{ color: '#E84F3D' }}>*</span>
+            </label>
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+              {profileImages.map((img, idx) => (
+                <div
+                  key={idx}
+                  onClick={() => makePrimary(idx)}
+                  style={{
+                    position: 'relative',
+                    width: 78, height: 78, borderRadius: 16,
+                    overflow: 'hidden', flexShrink: 0,
+                    border: idx === 0 ? '3px solid #FF6B5B' : '2px solid rgba(45, 24, 16, .12)',
+                    cursor: idx === 0 ? 'default' : 'pointer',
+                    boxShadow: idx === 0 ? '0 4px 14px rgba(255, 107, 91, .25)' : '0 1px 4px rgba(45, 24, 16, .06)',
+                    transition: 'transform .12s ease',
+                  }}
+                  title={idx === 0 ? 'Main avatar (shown on cards)' : 'Tap to make main'}
                 >
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
-                    <circle cx="12" cy="13" r="4"/>
-                  </svg>
+                  <img
+                    src={img}
+                    alt=""
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                  />
+                  {idx === 0 && (
+                    <div style={{
+                      position: 'absolute', bottom: 0, left: 0, right: 0,
+                      background: 'linear-gradient(180deg, transparent, rgba(255, 107, 91, .92))',
+                      padding: '10px 4px 3px',
+                      color: '#fff',
+                      fontSize: 9, fontWeight: 900, letterSpacing: '.14em',
+                      textAlign: 'center',
+                      pointerEvents: 'none',
+                    }}>
+                      MAIN
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); removePhoto(idx); }}
+                    aria-label="Remove photo"
+                    style={{
+                      position: 'absolute', top: 4, right: 4,
+                      width: 20, height: 20, borderRadius: '50%',
+                      background: 'rgba(45, 24, 16, .78)',
+                      color: '#fff', border: 'none', cursor: 'pointer',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: 13, lineHeight: 1, padding: 0,
+                      fontFamily: 'inherit',
+                    }}
+                  >
+                    ×
+                  </button>
                 </div>
-              </div>
-
-              <div style={{ flex: 1 }}>
+              ))}
+              {profileImages.length < MAX_PHOTOS && (
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
                   style={{
-                    padding: '10px 20px', borderRadius: 999, cursor: 'pointer',
-                    fontFamily: 'inherit', fontSize: 13, fontWeight: 700,
-                    background: '#FFFFFF',
-                    border: '1.5px solid rgba(45, 24, 16, .15)',
-                    color: '#3D2416',
-                    display: 'block', marginBottom: 6,
-                    boxShadow: '0 1px 3px rgba(45, 24, 16, .05)',
+                    width: 78, height: 78, borderRadius: 16, flexShrink: 0,
+                    background: 'rgba(255, 107, 91, .08)',
+                    border: '2px dashed rgba(255, 107, 91, .5)',
+                    color: '#E84F3D',
+                    fontSize: 28, fontWeight: 900, lineHeight: 1,
+                    cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontFamily: 'inherit',
                   }}
                 >
-                  Upload photo
+                  +
                 </button>
-                {profileImage && googleImage && profileImage !== googleImage && (
-                  <button
-                    type="button"
-                    onClick={() => setProfileImage(googleImage)}
-                    style={{
-                      padding: '6px 14px', borderRadius: 999, cursor: 'pointer',
-                      fontFamily: 'inherit', fontSize: 12, fontWeight: 600,
-                      background: 'transparent', border: 'none',
-                      color: 'rgba(45, 24, 16, .5)',
-                    }}
-                  >
-                    Reset to Google photo
-                  </button>
-                )}
-                <p style={{ fontSize: 12, color: 'rgba(45, 24, 16, .45)', marginTop: 4 }}>
-                  JPG, PNG, WebP — shown to other members
-                </p>
-              </div>
+              )}
             </div>
+            <p style={{ fontSize: 12, color: 'rgba(45, 24, 16, .5)', marginTop: 10, lineHeight: 1.45 }}>
+              {profileImages.length === 0
+                ? '1 required. Up to 5 photos. First photo shows on your card.'
+                : profileImages.length === 1
+                  ? `Add more (up to ${MAX_PHOTOS - profileImages.length} more). Tap × to remove.`
+                  : `Tap a photo to make it MAIN. ${profileImages.length}/${MAX_PHOTOS} photos.`}
+            </p>
             <input
               ref={fileInputRef}
               type="file"
@@ -242,32 +310,83 @@ export default function OnboardingForm({
             />
           </div>
 
+          {/* Gender + Age row */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: 14 }}>
+            <div>
+              <label style={labelStyle}>Gender *</label>
+              <div style={{
+                display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6,
+              }}>
+                {GENDER_OPTIONS.map(g => {
+                  const active = form.gender === g.id;
+                  return (
+                    <button
+                      key={g.id}
+                      type="button"
+                      onClick={() => set('gender', g.id)}
+                      style={{
+                        padding: '12px 8px', borderRadius: 12,
+                        fontSize: 13, fontWeight: 700, fontFamily: 'inherit',
+                        cursor: 'pointer',
+                        background: active
+                          ? 'linear-gradient(135deg, rgba(255,107,91,.16), rgba(232,67,147,.12))'
+                          : '#FFFFFF',
+                        border: `1.5px solid ${active ? '#FF6B5B' : 'rgba(45, 24, 16, .15)'}`,
+                        color: active ? '#2D1810' : '#3D2416',
+                        boxShadow: active ? '0 2px 8px rgba(255, 107, 91, .18)' : '0 1px 3px rgba(45, 24, 16, .04)',
+                        transition: 'all .15s',
+                      }}
+                    >
+                      {g.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            <div>
+              <label style={labelStyle}>
+                Age{' '}
+                <span style={{ color: 'rgba(45, 24, 16, .45)', fontWeight: 500, textTransform: 'none', letterSpacing: 0 }}>
+                  optional
+                </span>
+              </label>
+              <input
+                className="input-light"
+                type="number"
+                min={AGE_MIN}
+                max={AGE_MAX}
+                inputMode="numeric"
+                style={{ ...inputStyle, fontSize: 15 }}
+                value={form.age}
+                onChange={e => {
+                  // 숫자 외 차단 + 범위 clamp는 submit 시 처리
+                  const v = e.target.value.replace(/[^0-9]/g, '').slice(0, 2);
+                  setForm(p => ({ ...p, age: v }));
+                }}
+                placeholder="24"
+              />
+            </div>
+          </div>
+
           {/* Nationality */}
           <div>
             <label style={labelStyle}>Nationality *</label>
             <NationalityCombobox
               value={form.nationality}
-              onChange={v => set('nationality', v)}
+              onChange={setNationality}
             />
+            {form.nationality === 'Korean' && (
+              <p style={{
+                fontSize: 12, color: 'rgba(45, 24, 16, .6)',
+                marginTop: 8, fontWeight: 600,
+              }}>
+                🇰🇷 You&apos;re set as <b>Local</b> automatically.
+              </p>
+            )}
           </div>
 
-          {/* Location */}
-          <div>
-            <label style={labelStyle}>Current location in Korea *</label>
-            <select
-              className="input-light"
-              style={{ ...inputStyle, appearance: 'none', cursor: 'pointer' }}
-              value={form.location}
-              onChange={e => set('location', e.target.value)}
-            >
-              <option value="">Select location</option>
-              {LOCATIONS.map(l => (
-                <option key={l} value={l}>{l}</option>
-              ))}
-            </select>
-          </div>
-
-          {/* Status */}
+          {/* Status — Korean이면 자동 local 이라 숨김 (Nationality 바로 아래) */}
+          {form.nationality !== 'Korean' && (
           <div style={{ position: 'relative' }}>
             <label style={labelStyle}>I am a... *</label>
             <button
@@ -303,7 +422,7 @@ export default function OnboardingForm({
                 borderRadius: 12, overflow: 'hidden',
                 boxShadow: '0 12px 36px rgba(45, 24, 16, .14)',
               }}>
-                {USER_STATUSES.map((s, i) => {
+                {SELECTABLE_USER_STATUSES.map((s, i) => {
                   const selected = form.status === s.id;
                   return (
                     <button
@@ -341,38 +460,74 @@ export default function OnboardingForm({
               </div>
             )}
           </div>
+          )}
 
-          {/* What brings you here? */}
-          <div>
-            <label style={labelStyle}>What brings you here? *</label>
-            <p style={{
-              fontSize: 13, color: 'rgba(45, 24, 16, .55)',
-              marginBottom: 12, lineHeight: 1.5,
-            }}>
-              Pick up to 3. Helps others find you on the People tab.
-            </p>
-            <LookingForPicker
-              value={form.lookingFor}
-              onChange={setLookingFor}
-            />
-          </div>
+          {/* School — Student일 때만 필수 노출 */}
+          {form.status === 'exchange_student' && (
+            <div>
+              <label style={labelStyle}>School / University *</label>
+              <p style={{
+                fontSize: 12, color: 'rgba(45, 24, 16, .55)',
+                marginTop: -2, marginBottom: 8, lineHeight: 1.5,
+              }}>
+                🎓 Helps you connect with others at the same school.
+              </p>
+              <SchoolCombobox
+                value={form.school}
+                onChange={v => set('school', v)}
+                placeholder="e.g. Yonsei University, SKKU, or type your own"
+              />
+            </div>
+          )}
 
-          {/* Bio */}
+          {/* Location */}
           <div>
             <label style={labelStyle}>
-              One-liner bio{' '}
-              <span style={{ color: 'rgba(45, 24, 16, .35)', fontWeight: 500, textTransform: 'none', letterSpacing: 0 }}>
-                ({form.bio.length}/100) optional
-              </span>
+              Location in Korea{' '}
+              <span style={{ color: 'rgba(45, 24, 16, .45)', fontWeight: 500, textTransform: 'none', letterSpacing: 0 }}>
+                (current or planned)
+              </span>{' '}
+              *
             </label>
-            <input
-              className="input-light"
-              style={inputStyle}
-              value={form.bio}
-              onChange={e => set('bio', e.target.value.slice(0, 100))}
-              placeholder="ex.) French founder living in Seoul"
+            <FilterSelect
+              value={form.location}
+              onChange={v => {
+                setForm(p => ({
+                  ...p,
+                  location: v,
+                  // 광역 바뀌면 district 리셋 (Seoul이 아닌 곳 선택 시 district 의미 없음)
+                  locationDistrict: v === 'Seoul' ? p.locationDistrict : '',
+                }));
+              }}
+              options={[
+                { value: '', label: 'Select location' },
+                ...LOCATIONS.map(l => ({ value: l, label: l } satisfies FilterOption)),
+              ]}
+              placeholder="Select location"
             />
+            {form.location === 'Seoul' && (
+              <div style={{ marginTop: 10 }}>
+                <p style={{
+                  fontSize: 12, fontWeight: 700,
+                  color: 'rgba(45, 24, 16, .55)',
+                  marginBottom: 6,
+                }}>
+                  District <span style={{ fontWeight: 500, opacity: .7 }}>(optional)</span>
+                </p>
+                <FilterSelect
+                  value={form.locationDistrict}
+                  onChange={v => set('locationDistrict', v)}
+                  options={[
+                    { value: '', label: 'Any district in Seoul' },
+                    ...SEOUL_DISTRICTS.map(d => ({ value: d, label: d } satisfies FilterOption)),
+                  ]}
+                  placeholder="Any district in Seoul"
+                />
+              </div>
+            )}
           </div>
+
+          {/* Bio + "What brings you here?" moved to Profile page (Step 2) */}
 
           {/* Social links — optional accordion */}
           <div>
@@ -436,6 +591,29 @@ export default function OnboardingForm({
               </div>
             )}
           </div>
+
+          {/* Quality / suspension notice — 신규 가입 때만 (기존 유저 편집은 skip) */}
+          {!isReturning && (
+            <div style={{
+              marginTop: 8, marginBottom: 8,
+              padding: '14px 16px', borderRadius: 12,
+              background: 'rgba(255, 196, 140, .15)',
+              border: '1px solid rgba(255, 140, 120, .28)',
+            }}>
+              <p style={{
+                fontSize: 12, fontWeight: 800, letterSpacing: 0.3,
+                color: '#D97706', textTransform: 'uppercase', marginBottom: 6,
+              }}>
+                Quick note
+              </p>
+              <p style={{
+                fontSize: 13, lineHeight: 1.55,
+                color: 'rgba(45, 24, 16, .75)',
+              }}>
+                We&apos;re keeping quality high while we&apos;re small. Profiles that look incomplete or spammy may be suspended — please take your profile seriously.
+              </p>
+            </div>
+          )}
 
           {/* Submit */}
           <Button

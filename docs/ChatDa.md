@@ -1,6 +1,17 @@
-# ChatDa — 기획 정리 (v4)
+# ChatDa — 기획 정리 (v4.2, 2026-04-18 업데이트)
 
 > **최신 기획서.** 이전 버전(v3 종합본, 모임/3트랙 구조)은 [`ChatDa-v3-archive.md`](ChatDa-v3-archive.md) 에 보존.
+>
+> **v4.2 주요 변경** (2026-04-18):
+> - Status 5개 → **3개** (Student / Visitor / Resident). Korean nationality → 자동 `local`.
+> - 필수 필드 추가: **Gender** (Male/Female/Other).
+> - 옵션 필드 추가: **Age** (18–99).
+> - Student 선택 시 **School 필수** (네트워크 매칭 트리거).
+> - Seoul 선택 시 **District sub-picker** (25개 구, 유명도 순).
+> - Location 라벨 "Current" → **"Location in Korea (current or planned)"** — 아직 안 온 유저도 등록 가능.
+> - Bio + "What brings you here?" → **Step 2 (프로필 페이지)로 이동**. Step 1 간소화.
+> - 체류 기간: 모든 non-local 상태에 **arrived + departed** 둘 다 입력 가능. Expat/Worker는 month 정밀도, Student/Visitor는 date.
+> - 랜딩 tag: "cross-cultural network" → **"international community"**.
 
 ## 한 줄 요약
 
@@ -53,10 +64,11 @@
 
 ## 랜딩 카피
 
-- **Tag:** Korea's cross-cultural network
+- **Tag:** Korea's international community
 - **Headline:** See who else is here in Korea.
 - **Subline:** The person you're looking for already has a profile here.
 - **CTA:** Browse Profiles → (또는 See who's here →)
+- **푸터 라인:** Exchange students · Expats · Creators · Digital nomads — all in Korea
 
 ---
 
@@ -114,35 +126,54 @@
 
 ## 프로필 설계
 
-### Step 1 — 가입 시 필수 (30초 완료 목표)
+### Step 1 — 가입 시 (30초 목표, 5~7 필드)
 
+**필수 (모두 공통)**
 1. **프로필 사진** — Google 사진 자동 프리필, 업로드 교체 가능
 2. **Display name** — Google 이름 자동 프리필, 수정 가능
-3. **Nationality** — 국적 드롭다운
-4. **Current location** — 서울/부산/제주 등 광역 14개 드롭다운
-5. **I am a... (status)** — Traveler / International Student / Expat / Local Korean / Korean Student / Korean Professional 중 택 1
-6. **One-liner bio** — 100자 이내 (입력 자체는 optional이지만 Step 1 화면에 노출해 자발적 입력 유도)
+3. **Gender** — Male / Female / Other (3-way segmented)
+4. **Nationality** — 국적 combobox (196개, 유명도 순 상단 22개 + 알파벳 순 하단)
+5. **I am a... (status)** — Student / Visitor / Resident 중 택 1. **Korean nationality 선택 시 자동 `local` 세팅 + 피커 숨김** (Koreans 전용 fast-path).
+6. **Location in Korea (current or planned)** — 광역 14개 드롭다운. **Seoul 선택 시 District** 25개 구 sub-picker(optional, 유명도 순). "planned"를 붙인 이유: 아직 안 온 예비 방문자·학생도 가입 가능하게.
+
+**조건부 필수**
+7. **School** — status가 Student일 때만 노출 + 필수. 22개 한국 대학 프리셋 + free text 허용 (해외대·비공식 과정 대응). **네트워크 효과 트리거** — 같은 학교 학생끼리 빠르게 연결되게.
+
+**옵션 (Step 1 화면에 함께 노출)**
+- **Age** (18–99 정수)
+- **Social links** accordion (Facebook → Instagram → Threads → X → LinkedIn → TikTok 순서) — **connect accepted 후에만 공개**
 
 > **왜 status가 Step 1에 있나?**
-> status는 People 탭의 핵심 필터(로컬/외국인 구분)라 Step 1 필수로 유지. 빈 값이 많으면 필터 품질이 떨어져 매칭 경험 저하.
-> 원래 v4 초안은 status도 Step 2로 내렸지만, 코드 현실과 UX 가중치를 따져 Step 1로 되돌림 (2026-04-16).
+> People 탭의 핵심 필터(로컬/외국인 구분)라 Step 1 필수. 빈 값이 많으면 필터 품질이 떨어져 매칭 경험 저하.
+>
+> **왜 Bio와 "What brings you here?"는 Step 2로 갔나 (2026-04-18)?**
+> Step 1 진입 장벽을 낮추기 위해. motives는 고려 시간이 필요한 판단이고 bio는 좋은 문장이 생각나야 쓸 수 있음. 양쪽 다 Profile 페이지에서 채우도록 이동 — ProfileCompleteness 바로 완성도 유도.
 
-### Step 2 — 선택 (프로필 페이지에서 나중에 채우기)
+### Step 2 — 프로필 페이지에서 채우기 (전부 optional)
 
-- **체류 정보**
-  - 체류 기간 (예: 2025.03 ~ 2025.09)
-  - 세부 목적 (관광 / 유학 / 직장 / expat / 디지털노마드) — Step 1의 status(대분류)를 더 구체화하는 용도
-- **할 수 있는 것** (태그: Modeling, Tutoring, Photography, Translation, Content Creation, Voice Acting 등)
-- **찾고 있는 것** (태그: 언어 교환, 로컬 친구, 비자 도움 등)
-- **구사 언어** (+ 레벨)
-- **관심사** — 가벼운 아이스브레이커용
-- **소셜 미디어 링크** — **connect된 후에만 공개** (연결 요청 동기 유발)
+- **One-liner bio** (100자) — 2026-04-18 Step 1에서 이동
+- **What brings you here?** — 10개 프리셋 모티브 + ✨ Other 자유 입력 (30자), **합산 최대 3개**. 2026-04-18 Step 1에서 이동
+- **체류 기간** — 모든 non-local status에 arrived + departed 둘 다 입력 가능:
+  - Resident(expat): "Living here since" / "Planning to leave" — **month** 정밀도 (`<input type="month">`, day=01 저장)
+  - Visitor: "Arrival" / "Departure" — **date** 정밀도
+  - Student: "Semester start" / "Semester end" — **date** 정밀도
+  - Local: 해당 섹션 숨김
+- **Languages** (언어 + 레벨: native/fluent/conversational/learning)
+- **Interests** — 20개 프리셋 (최대 10개, 아이스브레이커용)
+- **Tags (can_do / looking_for)** — 20개 프리셋 + custom inline text(1~24자), **카테고리별 hard cap 3**. 서버가 400으로 enforce.
 
 ### 태그 시스템
 
-- "할 수 있는 것" / "찾고 있는 것"은 **미리 정해진 태그 목록**에서 선택
-- 자유 입력 시 검색 불일치 방지 (모델 vs modeling vs 사진 모델)
-- A의 "찾고 있는 것" ↔ B의 "할 수 있는 것" 매칭
+- can_do / looking_for 두 카테고리. 각각 **최대 3개** (프리셋 + custom 합산).
+- Custom 태그는 dashed border로 시각 구분.
+- 자유 입력이지만 길이 제한 + 카테고리별 cap으로 난립 방지.
+- A의 looking_for ↔ B의 can_do 매칭 (People 필터 "What they offer"는 can_do 기준).
+
+### 모티브(looking_for) 시스템
+
+- Step 2. 10개 프리셋(language exchange / local friends / work networking / creative collab / study tutoring / travel buddy / food nightlife / k-pop fandom / visa life help / just exploring) + ✨ Other 자유 입력 1개 슬롯.
+- 서버 스키마: `users.looking_for text[]` (프리셋 id) + `users.looking_for_custom text` (최대 30자).
+- People 필터 "What brings them"에는 **프리셋 10개만 노출** (custom은 그룹화 의미 없어 제외).
 
 ---
 

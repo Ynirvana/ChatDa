@@ -1,52 +1,118 @@
-import { signIn } from '@/lib/auth';
+import Link from 'next/link';
+import { signIn, auth } from '@/lib/auth';
+import { redirect } from 'next/navigation';
 import { Orb } from '@/components/ui/Card';
 
-export default function LoginPage() {
+// /login — 기존 회원 재로그인. 신규(초대) 유저는 /invite/[token]에서 signIn 흐름 탐.
+// NextAuth pages.signIn: '/login' — 세션 만료나 직접 접근 시 여기 떨어짐.
+
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
+  const session = await auth();
+  if (session?.user?.id) redirect('/');
+
+  const { error } = await searchParams;
+  // NextAuth signIn callback이 false 반환하면 error=AccessDenied로 돌아옴 (invite-only gate).
+  // 다른 에러 코드(OAuthSignin, Configuration 등)는 일반 문구로 fallback.
+  const showInviteError = error === 'AccessDenied';
+  const showGenericError = !!error && error !== 'AccessDenied';
+
   return (
-    <div className="page-bg" style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <Orb size={500} color="rgba(108,92,231,.3)" top={-100} left={-150} />
-      <Orb size={400} color="rgba(232,67,147,.25)" bottom={-100} right={-100} delay={2} />
+    <div className="page-bg-light" style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <Orb size={560} color="rgba(255, 140, 120, .22)" top={-120} left={-180} />
+      <Orb size={400} color="rgba(232, 67, 147, .14)" bottom={-100} right={-100} delay={2} />
 
       <div style={{
         position: 'relative', zIndex: 1,
-        width: '100%', maxWidth: 400, margin: '0 auto', padding: '0 24px',
+        width: '100%', maxWidth: 420, margin: '0 auto', padding: '40px 24px',
         display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center',
       }}>
-        <div style={{
-          width: 64, height: 64, borderRadius: 18,
-          background: 'linear-gradient(135deg, #FF6B35, #E84393)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 32, marginBottom: 24,
-        }}>
-          🇰🇷
-        </div>
+        {/* Sunset semicircle — /invite/[token], /join과 동일 family */}
+        <svg
+          width="56" height="34" viewBox="0 0 56 34" fill="none"
+          aria-hidden="true"
+          style={{ display: 'block', marginBottom: 28 }}
+        >
+          <defs>
+            <linearGradient id="loginSun" x1="28" y1="4" x2="28" y2="28" gradientUnits="userSpaceOnUse">
+              <stop offset="0" stopColor="#FFC140" />
+              <stop offset="0.55" stopColor="#FF8A5C" />
+              <stop offset="1" stopColor="#FF6B5B" />
+            </linearGradient>
+          </defs>
+          <line x1="0" y1="28" x2="56" y2="28" stroke="rgba(45,24,16,.18)" strokeWidth="1" />
+          <path d="M 5 28 A 23 23 0 0 1 51 28 Z" fill="url(#loginSun)" />
+        </svg>
 
-        <h1 style={{ fontSize: 28, fontWeight: 900, letterSpacing: -1, marginBottom: 8 }}>
-          Join chatda
+        <h1 style={{
+          fontSize: 32, fontWeight: 900, letterSpacing: -1,
+          marginBottom: 10, color: '#2D1810',
+        }}>
+          {showInviteError ? 'Invite required' : 'Welcome back'}
         </h1>
-        <p style={{ fontSize: 16, color: 'rgba(255,255,255,.6)', marginBottom: 40, lineHeight: 1.5 }}>
-          Meet people in Korea.<br />See who&apos;s coming before you join.
+        <p style={{
+          fontSize: 16, color: 'rgba(45, 24, 16, .65)',
+          marginBottom: showInviteError || showGenericError ? 24 : 36,
+          lineHeight: 1.55,
+        }}>
+          {showInviteError
+            ? "That Google account isn't registered with ChatDa."
+            : showGenericError
+              ? 'Something went wrong. Please try again.'
+              : 'Sign in to ChatDa.'}
         </p>
+
+        {/* Invite-only error banner — 더 자세한 안내 + /join 링크 */}
+        {showInviteError && (
+          <div style={{
+            width: '100%',
+            marginBottom: 24,
+            padding: '16px 20px',
+            borderRadius: 14,
+            background: 'linear-gradient(135deg, rgba(255, 107, 91, .12), rgba(232, 67, 147, .08))',
+            border: '1px solid rgba(255, 107, 91, .28)',
+            textAlign: 'left',
+          }}>
+            <p style={{ fontSize: 13, color: 'rgba(45, 24, 16, .78)', lineHeight: 1.55, marginBottom: 10 }}>
+              ChatDa is invite-only. If you have an invite link, just click it. Otherwise, request one on Threads.
+            </p>
+            <Link href="/join" style={{
+              display: 'inline-block',
+              fontSize: 13, fontWeight: 800, color: '#E84F3D',
+              textDecoration: 'none',
+            }}>
+              Request an invite →
+            </Link>
+          </div>
+        )}
 
         <div style={{
           width: '100%',
-          background: 'rgba(255,255,255,.08)',
-          border: '1px solid rgba(255,255,255,.12)',
-          borderRadius: 16,
+          background: 'rgba(255, 255, 255, .88)',
+          border: '1px solid rgba(45, 24, 16, .08)',
+          borderRadius: 18,
           padding: 24,
           backdropFilter: 'blur(10px)',
+          boxShadow: '0 8px 28px rgba(45, 24, 16, .08), 0 2px 6px rgba(45, 24, 16, .04)',
         }}>
           <form action={async () => {
             'use server';
-            await signIn('google', { redirectTo: '/onboarding' });
+            // '/' → home page가 status/onboarded 기반 라우팅. approved → /people, pending → /pending-approval, rejected → /rejected.
+            await signIn('google', { redirectTo: '/' });
           }}>
             <button type="submit" style={{
               width: '100%',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12,
-              background: '#ffffff', color: '#1a1033',
+              background: '#FFFFFF', color: '#2D1810',
               padding: '14px 28px', borderRadius: 999,
-              fontSize: 16, fontWeight: 700, border: 'none', cursor: 'pointer',
-              fontFamily: 'inherit',
+              fontSize: 16, fontWeight: 700,
+              border: '1.5px solid rgba(45, 24, 16, .12)',
+              cursor: 'pointer', fontFamily: 'inherit',
+              boxShadow: '0 2px 8px rgba(45, 24, 16, .06)',
+              transition: 'all .15s',
             }}>
               <svg width="20" height="20" viewBox="0 0 24 24">
                 <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -57,11 +123,22 @@ export default function LoginPage() {
               Continue with Google
             </button>
           </form>
-
-          <p style={{ fontSize: 12, color: 'rgba(255,255,255,.3)', marginTop: 16, lineHeight: 1.5 }}>
-            By joining you agree to our terms. No spam, ever.
-          </p>
         </div>
+
+        {/* New members route — 에러 배너에 이미 있으면 중복이라 숨김 */}
+        {!showInviteError && (
+        <p style={{
+          fontSize: 13, color: 'rgba(45, 24, 16, .55)',
+          marginTop: 24, lineHeight: 1.5,
+        }}>
+          New to ChatDa?{' '}
+          <Link href="/join" style={{
+            color: '#E84F3D', fontWeight: 700, textDecoration: 'none',
+          }}>
+            Request an invite →
+          </Link>
+        </p>
+        )}
       </div>
     </div>
   );

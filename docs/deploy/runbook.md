@@ -2,6 +2,21 @@
 
 실행 위치: `/home/dykim/project/ChatDa` (모든 명령 이 디렉토리 기준)
 
+> **2026-04-18 업데이트**: DB 비밀번호가 literal `chatda`에서 강한 값으로 로테이션됨.
+> 아래 예시 코드의 `PGPASSWORD="$DB_PASSWORD"`는 프로젝트 루트 `.env`에서 값을 읽어 쓰는 패턴:
+>
+> ```bash
+> # 쉘 세션마다 한 번 load:
+> set -a && source .env && set +a
+> # 이제 $DB_PASSWORD 사용 가능
+> PGPASSWORD="$DB_PASSWORD" psql -h localhost -p 5434 -U chatda -d chatda -c "SELECT 1"
+> ```
+>
+> 또는 인라인:
+> ```bash
+> PGPASSWORD=$(grep ^DB_PASSWORD= .env | cut -d= -f2) psql ...
+> ```
+
 ## 1. 서비스 기동 / 중단
 
 ### Prod 전체 기동
@@ -81,8 +96,8 @@ curl -I https://chatda.life/api/auth/providers
 
 ### DB 접속 테스트 (호스트에서)
 ```bash
-PGPASSWORD=chatda psql -h localhost -p 5434 -U chatda -d chatda -c "SELECT count(*) FROM users;"
-PGPASSWORD=chatda psql -h localhost -p 5434 -U chatda -d chatda_dev -c "SELECT count(*) FROM users;"
+PGPASSWORD="$DB_PASSWORD" psql -h localhost -p 5434 -U chatda -d chatda -c "SELECT count(*) FROM users;"
+PGPASSWORD="$DB_PASSWORD" psql -h localhost -p 5434 -U chatda -d chatda_dev -c "SELECT count(*) FROM users;"
 ```
 
 ---
@@ -145,7 +160,7 @@ npm run db:migrate:prod
 
 ### 마이그레이션 이력 확인
 ```bash
-PGPASSWORD=chatda psql -h localhost -p 5434 -U chatda -d chatda \
+PGPASSWORD="$DB_PASSWORD" psql -h localhost -p 5434 -U chatda -d chatda \
   -c "SELECT hash, created_at FROM drizzle.__drizzle_migrations ORDER BY created_at;"
 ```
 
@@ -271,7 +286,7 @@ npm run db:seed:prod
 
 ### prod 데이터 정리 (테스트 유저 제거)
 ```bash
-PGPASSWORD=chatda psql -h localhost -p 5434 -U chatda -d chatda <<'SQL'
+PGPASSWORD="$DB_PASSWORD" psql -h localhost -p 5434 -U chatda -d chatda <<'SQL'
 DELETE FROM users WHERE email IN ('jun@chatda.test', 'alex@chatda.test');
 DELETE FROM events WHERE title ~ 'ㅇㅇㅇ|test|테스트';
 SQL
@@ -279,7 +294,7 @@ SQL
 
 ### 특정 유저 외 전부 삭제
 ```bash
-PGPASSWORD=chatda psql -h localhost -p 5434 -U chatda -d chatda \
+PGPASSWORD="$DB_PASSWORD" psql -h localhost -p 5434 -U chatda -d chatda \
   -c "DELETE FROM users WHERE email != 'YOUR@EMAIL.COM';"
 ```
 

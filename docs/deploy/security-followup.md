@@ -4,6 +4,17 @@
 >
 > 적용 완료 항목은 [`../deployment/security-checklist.md`](../deployment/security-checklist.md) 상단 주석 참조.
 
+## 2026-04-18 업데이트 (진행 상태)
+
+- **✅ DB 비밀번호 env 변수 분리** — `docker-compose*.yml`의 literal `chatda` 비밀번호 전부 `${DB_PASSWORD:?...}` 변수 치환으로 전환. 루트 `.env` 파일로 일원화. `package.json` scripts + `scripts/migrate-prod.sh`도 env file sourcing 패턴.
+- **✅ DB 비밀번호 로테이션 (1차)** — role `chatda` 비밀번호 변경 (약한 `chatda` → 중간강도 11자).
+- **🚨 DB 비밀번호 재로테이션 필요 (2차)** — 1차 로테이션 중 transcript에 literal 값 2번 노출 (`.env` 파일 변경 알림 + `docker compose config` 출력 dump). CLAUDE.md secret-hygiene 정책 위반. **`openssl rand -hex 32` 강한 값으로 재로테이션 권장**.
+- **🔲 Postgres `pg_hba.conf` IP 제한** — 여전히 `host all all all scram-sha-256` 상태. WSL2 NAT가 외부 접근 차단하지만 LAN 내 노출 가능성 남아있음. Docker 네트워크 대역으로 제한 권장 (`172.16.0.0/12`).
+- **🔲 Postgres 5434 포트 `127.0.0.1` bind** — 현재 `0.0.0.0:5434` (LAN 내 노출 가능). `docker-compose.yml`의 `ports:` 선언을 `"127.0.0.1:5434:5432"`로 수정 권장.
+- **🔲 Prod backend 8000 포트** — 현재 `0.0.0.0:8000`. CF Tunnel이 localhost로 붙어야 해서 제거 불가. cloudflared를 Docker network로 이동하거나 Windows 방화벽 인바운드 차단으로 보완.
+- **🔲 DB role 분리** — 앱이 superuser `chatda`로 DB 접근 중. `chatda_app` (SELECT/INSERT/UPDATE/DELETE만) / `chatda_admin` (migration 용) 분리 권장.
+- **🔲 Postgres SSL** — 현재 off. Docker 내부 트래픽은 격리돼 저위험이지만 정책상 on 권장.
+
 ---
 
 ## 1. ⚙️ 자동 DB 백업 cron 등록 (즉시)
@@ -198,6 +209,10 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml restart backend 
 | 5 | NEXTAUTH_SECRET 회전 | 🔲 | 6개월 (2026-10-15) |
 | 6 | Uptime 모니터링 | 🔲 | **지금 10분 (무료)** |
 | 7 | Cloudflare Bot Fight Mode | 🔲 | **지금 1분 (CF Dashboard)** |
+| 8 | DB 비밀번호 env 변수 분리 | ✅ | 2026-04-18 완료 |
+| 9 | DB 비밀번호 재로테이션 (transcript 노출 해소) | 🚨 | **prod 배포 전 권장** |
+| 10 | Postgres `pg_hba.conf` IP 제한 + 5434 bind 127.0.0.1 | 🔲 | 다음 하드닝 라운드 |
+| 11 | DB role 분리 (superuser → app-limited) | 🔲 | 다음 하드닝 라운드 |
 
 ---
 

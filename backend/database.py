@@ -1,6 +1,6 @@
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
-from sqlalchemy import String, Integer, Boolean, Text, Enum as SAEnum, TIMESTAMP, Date, func
+from sqlalchemy import String, Integer, Boolean, Text, Enum as SAEnum, TIMESTAMP, Date, func, text
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB
 from datetime import date
 from typing import Any, AsyncGenerator
@@ -48,15 +48,23 @@ class User(Base):
     google_id: Mapped[str | None] = mapped_column(String, unique=True, nullable=True)
     nationality: Mapped[str | None] = mapped_column(String, nullable=True)
     location: Mapped[str | None] = mapped_column(String, nullable=True)
+    location_district: Mapped[str | None] = mapped_column(String, nullable=True)
+    school: Mapped[str | None] = mapped_column(String, nullable=True)
+    gender: Mapped[str | None] = mapped_column(String, nullable=True)
+    age: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    show_personal_info: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default='true')
     status: Mapped[str | None] = mapped_column(String, nullable=True)  # v4: text (application-level validation)
+    country_of_residence: Mapped[str] = mapped_column(String, nullable=False, server_default='KR')
     looking_for: Mapped[list[str]] = mapped_column(ARRAY(String), nullable=False, server_default='{}')
+    looking_for_custom: Mapped[str | None] = mapped_column(Text, nullable=True)
     # Step 2 — 프로필 페이지에서 채움
     stay_arrived: Mapped[date | None] = mapped_column(Date, nullable=True)
     stay_departed: Mapped[date | None] = mapped_column(Date, nullable=True)
     languages: Mapped[list[Any]] = mapped_column(JSONB, nullable=False, server_default='[]')
     interests: Mapped[list[str]] = mapped_column(ARRAY(String), nullable=False, server_default='{}')
     bio: Mapped[str | None] = mapped_column(Text, nullable=True)
-    profile_image: Mapped[str | None] = mapped_column(Text, nullable=True)
+    profile_image: Mapped[str | None] = mapped_column(Text, nullable=True)  # Primary (= profile_images[0])
+    profile_images: Mapped[list[str]] = mapped_column(ARRAY(Text), nullable=False, server_default='{}')
     onboarding_complete: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at = mapped_column(TIMESTAMP, server_default=func.now())
 
@@ -175,3 +183,21 @@ class BannedEmail(Base):
     banned_at = mapped_column(TIMESTAMP, server_default=func.now())
     banned_by: Mapped[str | None] = mapped_column(String, nullable=True)
     reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+
+class InviteToken(Base):
+    __tablename__ = "invite_tokens"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    token: Mapped[str] = mapped_column(String, nullable=False, unique=True)
+    invite_number: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        server_default=text("nextval('invite_tokens_invite_number_seq'::regclass)"),
+    )
+    created_by_user_id: Mapped[str | None] = mapped_column(String, nullable=True)
+    created_at = mapped_column(TIMESTAMP, server_default=func.now())
+    expires_at = mapped_column(TIMESTAMP, nullable=False)
+    claimed_by_user_id: Mapped[str | None] = mapped_column(String, nullable=True)
+    claimed_at = mapped_column(TIMESTAMP, nullable=True)
+    note: Mapped[str | None] = mapped_column(Text, nullable=True)

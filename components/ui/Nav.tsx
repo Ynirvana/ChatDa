@@ -164,18 +164,33 @@ export function Nav({ user, isAdmin = false, light = true }: { user?: NavUser | 
             )}
           </div>
         ) : (
-          <Link href="/login" style={{ marginLeft: 8, textDecoration: 'none' }}>
-            <Button
-              variant={light ? 'accent' : 'primary'}
+          <>
+            <Link
+              href="/login"
               style={{
-                padding: '10px 22px',
+                marginLeft: 12,
+                textDecoration: 'none',
                 fontSize: 14,
-                boxShadow: light ? '0 4px 14px rgba(255, 107, 91, .28)' : undefined,
+                fontWeight: 600,
+                color: linkIdleColor,
+                padding: '8px 4px',
               }}
             >
-              Join
-            </Button>
-          </Link>
+              Log in
+            </Link>
+            <Link href="/join" style={{ marginLeft: 4, textDecoration: 'none' }}>
+              <Button
+                variant={light ? 'accent' : 'primary'}
+                style={{
+                  padding: '10px 22px',
+                  fontSize: 14,
+                  boxShadow: light ? '0 4px 14px rgba(255, 107, 91, .28)' : undefined,
+                }}
+              >
+                Join
+              </Button>
+            </Link>
+          </>
         )}
       </div>
     </nav>

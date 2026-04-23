@@ -1,7 +1,9 @@
+from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, desc, delete
+from nanoid import generate
 
 from database import (
     get_db,
@@ -14,10 +16,13 @@ from database import (
     PostComment,
     EventMemory,
     BannedEmail,
+    InviteToken,
 )
 from auth import require_admin, is_admin_email
 
 router = APIRouter(prefix="/admin", tags=["admin"])
+
+INVITE_TTL_HOURS = 48
 
 
 @router.get("/overview")
@@ -281,3 +286,93 @@ async def delete_event_cascade(
     await db.delete(event)
     await db.commit()
     return {"ok": True, "deleted_event": event_id}
+
+
+# ── Invite tokens ──────────────────────────────────────────────────────────
+
+
+class InviteCreateRequest(BaseModel):
+    note: str | None = Field(default=None, max_length=120)
+
+
+@router.post("/invites", status_code=201)
+async def create_invite(
+    payload: InviteCreateRequest,
+    admin_email: str = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Admin이 새 invite 토큰 발급. 7일 expiry, single-use.
+    Returns token (URL-safe string) — admin이 Threads DM으로 공유할 URL 구성용."""
+    admin = (await db.execute(select(User).where(User.email == admin_email))).scalars().first()
+    token_value = generate(
+        "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz", 24
+    )
+    expires_at = datetime.now(timezone.utc) + timedelta(hours=INVITE_TTL_HOURS)
+    row = InviteToken(
+        id=generate(size=21),
+        token=token_value,
+        created_by_user_id=admin.id if admin else None,
+        expires_at=expires_at.replace(tzinfo=None),
+        note=(payload.note or "").strip() or None,
+    )
+    db.add(row)
+    await db.commit()
+    await db.refresh(row)
+    return {
+        "id": row.id,
+        "token": row.token,
+        "expires_at": row.expires_at.isoformat() if row.expires_at else None,
+        "note": row.note,
+    }
+
+
+@router.get("/invites")
+async def list_invites(
+    _: str = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    rows = (
+        await db.execute(select(InviteToken).order_by(desc(InviteToken.created_at)).limit(50))
+    ).scalars().all()
+    claimed_user_ids = [r.claimed_by_user_id for r in rows if r.claimed_by_user_id]
+    claimed_users: dict[str, dict] = {}
+    if claimed_user_ids:
+        result = await db.execute(select(User).where(User.id.in_(claimed_user_ids)))
+        for u in result.scalars().all():
+            claimed_users[u.id] = {"id": u.id, "name": u.name, "email": u.email}
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    return {
+        "invites": [
+            {
+                "id": r.id,
+                "token": r.token,
+                "created_at": r.created_at.isoformat() if r.created_at else None,
+                "expires_at": r.expires_at.isoformat() if r.expires_at else None,
+                "claimed_at": r.claimed_at.isoformat() if r.claimed_at else None,
+                "claimed_by": claimed_users.get(r.claimed_by_user_id) if r.claimed_by_user_id else None,
+                "note": r.note,
+                "state": (
+                    "claimed" if r.claimed_at
+                    else "expired" if (r.expires_at and r.expires_at < now)
+                    else "unused"
+                ),
+            }
+            for r in rows
+        ]
+    }
+
+
+@router.delete("/invites/{invite_id}")
+async def revoke_invite(
+    invite_id: str,
+    _: str = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    row = await db.get(InviteToken, invite_id)
+    if not row:
+        raise HTTPException(status_code=404, detail="Invite not found")
+    if row.claimed_at:
+        raise HTTPException(status_code=400, detail="Already claimed — cannot revoke")
+    await db.delete(row)
+    await db.commit()
+    return {"ok": True, "revoked": invite_id}
