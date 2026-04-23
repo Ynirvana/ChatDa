@@ -197,13 +197,8 @@ async def directory(
     viewer_id: str | None = Depends(optional_user_id),
     db: AsyncSession = Depends(get_db),
 ):
-    """Public directory of onboarded users. Social links only shown to connected users.
-
-    Prod(ENVIRONMENT=production)에선 @chatda.test 시드 유저 자동 제외 — dev에선 노출.
-    """
+    """Public directory of onboarded users. Social links only shown to connected users."""
     query = select(User).where(User.onboarding_complete == True)
-    if settings.is_production:
-        query = query.where(~User.email.like("%@chatda.test"))
     users_result = await db.execute(query.order_by(User.created_at.desc()))
     all_users = users_result.scalars().all()
     if not all_users:

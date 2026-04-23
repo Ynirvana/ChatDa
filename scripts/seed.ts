@@ -57,6 +57,9 @@ async function seed() {
       interests: ['K-pop', 'Food', 'Hiking', 'Photography'],
       bio: 'UX designer in Gangnam. Love bibimbap more than I should.',
       onboardingComplete: true,
+      approvalStatus: 'approved',
+      approvedAt: new Date(),
+      approvedBy: 'seed',
     },
     {
       id: junId,
@@ -78,6 +81,9 @@ async function seed() {
       interests: ['Art', 'Music', 'Coffee', 'Tech'],
       bio: 'Indie filmmaker. I know every hidden jazz bar in Mapo.',
       onboardingComplete: true,
+      approvalStatus: 'approved',
+      approvedAt: new Date(),
+      approvedBy: 'seed',
     },
     {
       id: yukiId,
@@ -100,6 +106,9 @@ async function seed() {
       interests: ['Food', 'Travel', 'Anime', 'Photography'],
       bio: 'Solo-traveling around Busan for a month. Seafood recs welcome!',
       onboardingComplete: true,
+      approvalStatus: 'approved',
+      approvedAt: new Date(),
+      approvedBy: 'seed',
     },
     {
       id: marcoId,
@@ -122,6 +131,9 @@ async function seed() {
       interests: ['Tech', 'Coffee', 'Fashion', 'Art'],
       bio: 'Milan → Seoul in June for a 3-month startup residency. Who should I meet?',
       onboardingComplete: true,
+      approvalStatus: 'approved',
+      approvedAt: new Date(),
+      approvedBy: 'seed',
     },
     {
       id: meiId,
@@ -143,6 +155,9 @@ async function seed() {
       interests: ['K-pop', 'Dance', 'Fashion', 'Photography', 'Music'],
       bio: 'Content creator based in Jeju. Shooting island lifestyle and brand campaigns.',
       onboardingComplete: true,
+      approvalStatus: 'approved',
+      approvedAt: new Date(),
+      approvedBy: 'seed',
     },
     {
       id: emmaId,
@@ -167,6 +182,9 @@ async function seed() {
       interests: ['Hiking', 'Coffee', 'Photography', 'Languages'],
       bio: 'Exchange semester at Yonsei. First time in Asia — please show me your favorite cafes.',
       onboardingComplete: true,
+      approvalStatus: 'approved',
+      approvedAt: new Date(),
+      approvedBy: 'seed',
     },
     {
       id: lucasId,
@@ -188,6 +206,9 @@ async function seed() {
       interests: ['Sports', 'Food', 'Fitness', 'Music'],
       bio: 'Shipbuilding engineer in Busan. Surf on weekends, BBQ on weeknights.',
       onboardingComplete: true,
+      approvalStatus: 'approved',
+      approvedAt: new Date(),
+      approvedBy: 'seed',
     },
     {
       id: chloeId,
@@ -210,6 +231,9 @@ async function seed() {
       interests: ['Art', 'Fashion', 'Coffee', 'Travel', 'Movies'],
       bio: 'Paris → Seoul three years ago. Illustrator, sometimes gallery-hopping around Yeonnam-dong.',
       onboardingComplete: true,
+      approvalStatus: 'approved',
+      approvedAt: new Date(),
+      approvedBy: 'seed',
     },
     {
       id: jackId,
@@ -233,6 +257,9 @@ async function seed() {
       interests: ['Sports', 'Gaming', 'Food', 'Travel'],
       bio: 'Sydney kid at KU for one semester. Keen for anyone who wants to hike Bukhansan this weekend.',
       onboardingComplete: true,
+      approvalStatus: 'approved',
+      approvedAt: new Date(),
+      approvedBy: 'seed',
     },
     {
       id: putriId,
@@ -255,6 +282,9 @@ async function seed() {
       interests: ['K-pop', 'Food', 'Photography', 'Nature'],
       bio: 'Jakarta → Jeju for two weeks of beach + cafes. Trying to find the best haenyeo lunch.',
       onboardingComplete: true,
+      approvalStatus: 'approved',
+      approvedAt: new Date(),
+      approvedBy: 'seed',
     },
   ]);
 

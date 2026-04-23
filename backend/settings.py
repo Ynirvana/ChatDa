@@ -6,7 +6,6 @@ class Settings(BaseSettings):
     nextauth_secret: str
     # Comma-separated admin emails, e.g. "dykim9304@gmail.com,another@x.com"
     admin_emails: str = ""
-    # "production" → @chatda.test seed 유저 자동 필터. dev에선 기본값 그대로 두면 seed 노출됨.
     environment: str = "development"
 
     @property
