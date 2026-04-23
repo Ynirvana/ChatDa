@@ -11,7 +11,7 @@ services:
     env_file:
       - backend/.env.production
     environment:
-      DATABASE_URL: postgresql+asyncpg://chatda:chatda@db:5432/chatda
+      DATABASE_URL: postgresql+asyncpg://chatda:${DB_PASSWORD:?DB_PASSWORD must be set in .env}@db:5432/chatda
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "python -c \"import urllib.request,sys;sys.exit(0 if urllib.request.urlopen('http://localhost:8000/docs',timeout=3).status==200 else 1)\""]
@@ -38,7 +38,7 @@ services:
       BACKEND_URL: http://backend:8000
       HOSTNAME: "0.0.0.0"
       # Override host-style URL from .env.production.local for Docker network
-      DATABASE_URL: postgresql://chatda:chatda@db:5432/chatda
+      DATABASE_URL: postgresql://chatda:${DB_PASSWORD:?DB_PASSWORD must be set in .env}@db:5432/chatda
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/ >/dev/null 2>&1 || exit 1"]

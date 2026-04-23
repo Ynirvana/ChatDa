@@ -12,7 +12,7 @@ services:
     env_file:
       - backend/.env.local
     environment:
-      DATABASE_URL: postgresql+asyncpg://chatda:chatda@db:5432/chatda_dev
+      DATABASE_URL: postgresql+asyncpg://chatda:${DB_PASSWORD:?DB_PASSWORD must be set in .env}@db:5432/chatda_dev
     volumes:
       - ./backend:/app
     restart: unless-stopped
@@ -33,6 +33,7 @@ services:
       - .env.local
     environment:
       BACKEND_URL: http://backend-dev:8000
+      DATABASE_URL: postgresql://chatda:${DB_PASSWORD:?DB_PASSWORD must be set in .env}@db:5432/chatda_dev
     volumes:
       - .:/app
       - /app/node_modules
