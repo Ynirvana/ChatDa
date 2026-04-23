@@ -47,15 +47,26 @@ export function LanguagesEditor({ initial }: { initial: Lang[] }) {
     setDirty(true);
   };
 
+  // 드롭다운에서 언어+레벨 선택만 하고 "+ Add" 안 누른 상태도 저장 대상으로 인식
+  const hasPendingAdd = !!(selLang && selLevel && !alreadyAdded.has(selLang));
+  const canSave = dirty || hasPendingAdd;
+
   const save = async () => {
     setSaving(true);
     try {
+      // pending 선택이 있으면 자동으로 리스트에 포함
+      const final = hasPendingAdd
+        ? [...langs, { language: selLang, level: selLevel }]
+        : langs;
       const res = await fetch('/api/users/me', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ languages: langs }),
+        body: JSON.stringify({ languages: final }),
       });
       if (!res.ok) throw new Error();
+      setLangs(final);
+      setSelLang('');
+      setSelLevel('');
       setDirty(false);
       router.refresh();
     } catch {
@@ -199,23 +210,22 @@ export function LanguagesEditor({ initial }: { initial: Lang[] }) {
         </>
       )}
 
-      {dirty && (
-        <button
-          onClick={save}
-          disabled={saving}
-          style={{
-            marginTop: 12,
-            padding: '11px 24px', borderRadius: 999, border: 'none',
-            fontSize: 13, fontWeight: 800, cursor: saving ? 'wait' : 'pointer',
-            background: 'linear-gradient(135deg, #FF6B5B, #E84393)',
-            color: '#fff',
-            fontFamily: 'inherit',
-            boxShadow: '0 4px 14px rgba(255, 107, 91, .3)',
-          }}
-        >
-          {saving ? 'Saving...' : 'Save languages'}
-        </button>
-      )}
+      <button
+        onClick={save}
+        disabled={!canSave || saving}
+        style={{
+          marginTop: 12,
+          padding: '11px 24px', borderRadius: 999, border: 'none',
+          fontSize: 13, fontWeight: 800,
+          cursor: saving ? 'wait' : !canSave ? 'not-allowed' : 'pointer',
+          background: !canSave ? 'rgba(45, 24, 16, .08)' : 'linear-gradient(135deg, #FF6B5B, #E84393)',
+          color: !canSave ? 'rgba(45, 24, 16, .35)' : '#fff',
+          fontFamily: 'inherit',
+          boxShadow: !canSave ? 'none' : '0 4px 14px rgba(255, 107, 91, .3)',
+        }}
+      >
+        {saving ? 'Saving...' : 'Save languages'}
+      </button>
     </div>
   );
 }

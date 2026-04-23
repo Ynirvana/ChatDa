@@ -57,23 +57,22 @@ export function MotivesEditor({
         onChange={setLookingFor}
         onCustomChange={setCustom}
       />
-      {dirty && (
-        <button
-          onClick={save}
-          disabled={saving}
-          style={{
-            marginTop: 14,
-            padding: '10px 24px', borderRadius: 999, border: 'none',
-            fontSize: 13, fontWeight: 800, cursor: saving ? 'wait' : 'pointer',
-            background: 'linear-gradient(135deg, #FF6B5B, #E84393)',
-            color: '#fff',
-            fontFamily: 'inherit',
-            boxShadow: '0 4px 12px rgba(255, 107, 91, .28)',
-          }}
-        >
-          {saving ? 'Saving...' : 'Save'}
-        </button>
-      )}
+      <button
+        onClick={save}
+        disabled={!dirty || saving}
+        style={{
+          marginTop: 14,
+          padding: '10px 24px', borderRadius: 999, border: 'none',
+          fontSize: 13, fontWeight: 800,
+          cursor: saving ? 'wait' : !dirty ? 'not-allowed' : 'pointer',
+          background: !dirty ? 'rgba(45, 24, 16, .08)' : 'linear-gradient(135deg, #FF6B5B, #E84393)',
+          color: !dirty ? 'rgba(45, 24, 16, .35)' : '#fff',
+          fontFamily: 'inherit',
+          boxShadow: !dirty ? 'none' : '0 4px 12px rgba(255, 107, 91, .28)',
+        }}
+      >
+        {saving ? 'Saving...' : 'Save'}
+      </button>
     </div>
   );
 }

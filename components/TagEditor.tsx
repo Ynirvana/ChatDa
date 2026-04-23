@@ -340,23 +340,22 @@ export function TagEditor({ initial }: { initial: Tag[] }) {
         </p>
       )}
 
-      {dirty && (
-        <button
-          onClick={save}
-          disabled={saving}
-          style={{
-            marginTop: 8,
-            padding: '12px 28px', borderRadius: 999, border: 'none',
-            fontSize: 14, fontWeight: 800, cursor: saving ? 'wait' : 'pointer',
-            background: 'linear-gradient(135deg, #FF6B5B, #E84393)',
-            color: '#fff',
-            fontFamily: 'inherit',
-            boxShadow: '0 4px 14px rgba(255, 107, 91, .3)',
-          }}
-        >
-          {saving ? 'Saving...' : 'Save Tags'}
-        </button>
-      )}
+      <button
+        onClick={save}
+        disabled={!dirty || saving}
+        style={{
+          marginTop: 8,
+          padding: '12px 28px', borderRadius: 999, border: 'none',
+          fontSize: 14, fontWeight: 800,
+          cursor: saving ? 'wait' : !dirty ? 'not-allowed' : 'pointer',
+          background: !dirty ? 'rgba(45, 24, 16, .08)' : 'linear-gradient(135deg, #FF6B5B, #E84393)',
+          color: !dirty ? 'rgba(45, 24, 16, .35)' : '#fff',
+          fontFamily: 'inherit',
+          boxShadow: !dirty ? 'none' : '0 4px 14px rgba(255, 107, 91, .3)',
+        }}
+      >
+        {saving ? 'Saving...' : 'Save Tags'}
+      </button>
     </div>
   );
 }
