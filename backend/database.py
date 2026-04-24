@@ -43,7 +43,9 @@ class User(Base):
     __tablename__ = "users"
 
     id: Mapped[str] = mapped_column(String, primary_key=True)
-    name: Mapped[str] = mapped_column(String, nullable=False)
+    first_name: Mapped[str | None] = mapped_column(String, nullable=True)
+    last_name: Mapped[str | None] = mapped_column(String, nullable=True)
+    name: Mapped[str] = mapped_column(String, nullable=False)  # synced = first_name + " " + last_name
     email: Mapped[str] = mapped_column(String, nullable=False, unique=True)
     google_id: Mapped[str | None] = mapped_column(String, unique=True, nullable=True)
     nationality: Mapped[str | None] = mapped_column(String, nullable=True)
@@ -98,6 +100,7 @@ class Event(Base):
     requirements: Mapped[str | None] = mapped_column(Text, nullable=True)  # JSON array
     payment_method: Mapped[str | None] = mapped_column(String, nullable=True)
     fee_note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    contact_link: Mapped[str | None] = mapped_column(Text, nullable=True)
     host_id: Mapped[str | None] = mapped_column(String, nullable=True)
     created_at = mapped_column(TIMESTAMP, server_default=func.now())
 

@@ -6,7 +6,9 @@ export const rsvpStatusEnum = pgEnum('rsvp_status', ['pending', 'approved', 'rej
 
 export const users = pgTable('users', {
   id: text('id').primaryKey(),
-  name: text('name').notNull(),
+  firstName: text('first_name'),
+  lastName: text('last_name'),
+  name: text('name').notNull(),  // synced display name = first_name + " " + last_name
   email: text('email').notNull().unique(),
   googleId: text('google_id').unique(),
   nationality: text('nationality'),
@@ -73,6 +75,7 @@ export const events = pgTable('events', {
   requirements: text('requirements'),   // JSON array e.g. '["profile_photo","instagram"]'
   paymentMethod: text('payment_method'), // 'dutch' | 'split' | 'cover' | 'included'
   feeNote: text('fee_note'),            // e.g. "Includes 2 shots + beer"
+  contactLink: text('contact_link'),   // group chat URL shown to approved attendees
   hostId: text('host_id').references(() => users.id),
   createdAt: timestamp('created_at').notNull().defaultNow(),
 });
