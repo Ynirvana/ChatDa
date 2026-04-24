@@ -39,6 +39,7 @@ class CreateEventBody(BaseModel):
     requirements: list[str] = Field(default_factory=list, max_length=20)
     payment_method: str | None = Field(default=None, max_length=40)
     fee_note: str | None = Field(default=None, max_length=500)
+    contact_link: str | None = Field(default=None, max_length=2000)
 
     @field_validator("cover_image")
     @classmethod
@@ -71,6 +72,7 @@ async def create_event(
         requirements=json.dumps(body.requirements) if body.requirements else None,
         payment_method=body.payment_method or None,
         fee_note=body.fee_note or None,
+        contact_link=body.contact_link or None,
     )
     db.add(event)
     await db.commit()
@@ -107,6 +109,7 @@ async def update_event(
     event.requirements = json.dumps(body.requirements) if body.requirements else None
     event.payment_method = body.payment_method or None
     event.fee_note = body.fee_note or None
+    event.contact_link = body.contact_link or None
 
     await db.commit()
     return {"ok": True, "id": event.id}
@@ -118,7 +121,7 @@ async def update_rsvp(
     user_id: str = Depends(get_current_user_id),
     db: AsyncSession = Depends(get_db),
 ):
-    if body.status not in ("approved", "rejected"):
+    if body.status not in ("approved", "rejected", "cancelled"):
         raise HTTPException(status_code=400, detail="Invalid status")
 
     rsvp = await db.get(Rsvp, body.rsvp_id)
@@ -139,15 +142,56 @@ async def list_host_events(
     user_id: str = Depends(get_current_user_id),
     db: AsyncSession = Depends(get_db),
 ):
+    from datetime import date as date_type
+    today_str = date_type.today().isoformat()
     result = await db.execute(
-        select(Event).where(Event.host_id == user_id).order_by(Event.date.desc())
+        select(Event)
+        .where(Event.host_id == user_id, Event.date >= today_str)
+        .order_by(Event.date)
     )
     events = result.scalars().all()
+    if not events:
+        return []
+
+    event_ids = [ev.id for ev in events]
+
+    # All RSVPs (pending + approved) in one query
+    rsvp_result = await db.execute(
+        select(Rsvp, User)
+        .join(User, Rsvp.user_id == User.id)
+        .where(Rsvp.event_id.in_(event_ids), Rsvp.status.in_(["pending", "approved"]))
+        .order_by(Rsvp.created_at)
+    )
+    pending_by_event: dict[str, list] = {}
+    approved_by_event: dict[str, list] = {}
+    approved_counts: dict[str, int] = {}
+    for r, u in rsvp_result.all():
+        entry = {
+            "rsvp_id": r.id,
+            "user_id": u.id,
+            "user_name": u.name,
+            "user_image": u.profile_image,
+            "user_nationality": u.nationality,
+            "message": r.message,
+        }
+        if r.status == "pending":
+            pending_by_event.setdefault(r.event_id, []).append(entry)
+        else:
+            approved_by_event.setdefault(r.event_id, []).append(entry)
+            approved_counts[r.event_id] = approved_counts.get(r.event_id, 0) + 1
+
     return [
         {
             "id": ev.id, "title": ev.title, "date": ev.date, "time": ev.time,
             "location": ev.location, "area": ev.area,
             "capacity": ev.capacity, "fee": ev.fee,
+            "description": ev.description,
+            "google_map_url": ev.google_map_url,
+            "naver_map_url": ev.naver_map_url,
+            "meeting_details": ev.directions,
+            "approved_count": approved_counts.get(ev.id, 0),
+            "pending_rsvps": pending_by_event.get(ev.id, []),
+            "approved_rsvps": approved_by_event.get(ev.id, []),
         }
         for ev in events
     ]

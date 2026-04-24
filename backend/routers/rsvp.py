@@ -12,6 +12,7 @@ router = APIRouter(prefix="/rsvp", tags=["rsvp"])
 
 class RsvpRequest(BaseModel):
     event_id: str
+    message: str | None = None
 
 
 @router.post("")
@@ -20,13 +21,16 @@ async def create_rsvp(
     user_id: str = Depends(get_current_user_id),
     db: AsyncSession = Depends(get_db),
 ):
-    # 중복 신청 확인
-    existing = await db.execute(
+    # Check for existing RSVP
+    existing_result = await db.execute(
         select(Rsvp).where(
             and_(Rsvp.event_id == body.event_id, Rsvp.user_id == user_id)
         )
     )
-    if existing.scalar_one_or_none():
+    existing_rsvp = existing_result.scalar_one_or_none()
+
+    # Block re-apply only if pending or approved
+    if existing_rsvp and existing_rsvp.status in ("pending", "approved"):
         raise HTTPException(status_code=409, detail="Already applied")
 
     # 정원 확인
@@ -40,13 +44,18 @@ async def create_rsvp(
         )
     )
     approved = count_result.scalar() or 0
-    if approved >= event.capacity:
+    if approved >= event.capacity - 1:
         raise HTTPException(status_code=409, detail="Event is full")
 
-    rsvp = Rsvp(id=generate(), event_id=body.event_id, user_id=user_id, status="pending")
-    db.add(rsvp)
-    await db.commit()
+    # Reuse existing cancelled/rejected record instead of creating a new one
+    if existing_rsvp:
+        existing_rsvp.status = "pending"
+        existing_rsvp.message = body.message or None
+    else:
+        rsvp = Rsvp(id=generate(), event_id=body.event_id, user_id=user_id, status="pending", message=body.message or None)
+        db.add(rsvp)
 
+    await db.commit()
     return {"ok": True}
 
 

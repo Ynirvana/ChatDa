@@ -9,7 +9,7 @@ export function RsvpActions({ rsvpId }: { rsvpId: string }) {
   const [done, setDone] = useState(false);
 
   if (done) return (
-    <p style={{ fontSize: 13, color: 'rgba(255,255,255,.3)', textAlign: 'center' }}>Done</p>
+    <p style={{ fontSize: 13, color: 'rgba(45,24,16,.4)', textAlign: 'center' }}>Done</p>
   );
 
   const handle = async (status: 'approved' | 'rejected') => {
@@ -33,8 +33,8 @@ export function RsvpActions({ rsvpId }: { rsvpId: string }) {
         disabled={!!loading}
         style={{
           flex: 1, padding: '10px', borderRadius: 10, border: 'none',
-          background: loading === 'approved' ? 'rgba(0,184,148,.3)' : 'rgba(0,184,148,.15)',
-          color: 'rgba(0,184,148,.9)', fontWeight: 700, fontSize: 14,
+          background: loading === 'approved' ? 'rgba(0,184,148,.2)' : 'rgba(0,184,148,.1)',
+          color: '#00957A', fontWeight: 700, fontSize: 14,
           cursor: loading ? 'default' : 'pointer', fontFamily: 'inherit',
         }}
       >
@@ -44,9 +44,10 @@ export function RsvpActions({ rsvpId }: { rsvpId: string }) {
         onClick={() => handle('rejected')}
         disabled={!!loading}
         style={{
-          flex: 1, padding: '10px', borderRadius: 10, border: 'none',
-          background: 'rgba(255,255,255,.06)',
-          color: 'rgba(255,255,255,.4)', fontWeight: 700, fontSize: 14,
+          flex: 1, padding: '10px', borderRadius: 10,
+          border: '1px solid rgba(45,24,16,.12)',
+          background: '#fff',
+          color: 'rgba(45,24,16,.45)', fontWeight: 700, fontSize: 14,
           cursor: loading ? 'default' : 'pointer', fontFamily: 'inherit',
         }}
       >

@@ -8,14 +8,14 @@ interface Props {
   eventId: string;
   isLoggedIn: boolean;
   isFull: boolean;
-  existingStatus: string | null; // 'pending' | 'approved' | 'rejected' | 'cancelled' | null
+  existingStatus: string | null;
 }
 
-const statusLabel: Record<string, { text: string; color: string }> = {
-  pending:  { text: '⏳ Request sent — waiting for host', color: 'rgba(255,234,167,.9)' },
-  approved: { text: "✅ You're in!", color: 'rgba(0,184,148,.9)' },
-  rejected: { text: '✗ Not accepted this time', color: 'rgba(255,255,255,.4)' },
-  cancelled:{ text: 'Cancelled', color: 'rgba(255,255,255,.4)' },
+const statusLabel: Record<string, { text: string; color: string; bg: string; border: string }> = {
+  pending:  { text: '⏳ Request sent — waiting for host', color: '#C68600', bg: 'rgba(255,193,7,.1)', border: 'rgba(255,193,7,.4)' },
+  approved: { text: "✅ You're in!", color: '#00957A', bg: 'rgba(0,184,148,.1)', border: 'rgba(0,184,148,.3)' },
+  rejected: { text: '✗ Not accepted this time', color: 'rgba(45,24,16,.4)', bg: 'rgba(45,24,16,.04)', border: 'rgba(45,24,16,.1)' },
+  cancelled:{ text: 'Cancelled', color: 'rgba(45,24,16,.4)', bg: 'rgba(45,24,16,.04)', border: 'rgba(45,24,16,.1)' },
 };
 
 export function RsvpButton({ eventId, isLoggedIn, isFull, existingStatus }: Props) {
@@ -24,11 +24,11 @@ export function RsvpButton({ eventId, isLoggedIn, isFull, existingStatus }: Prop
   const [status, setStatus] = useState(existingStatus);
 
   if (status && statusLabel[status]) {
-    const { text, color } = statusLabel[status];
+    const { text, color, bg, border } = statusLabel[status];
     return (
       <div style={{
         padding: '14px 24px', borderRadius: 999, textAlign: 'center',
-        background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.1)',
+        background: bg, border: `1px solid ${border}`,
         color, fontWeight: 700, fontSize: 15,
       }}>
         {text}
@@ -40,8 +40,8 @@ export function RsvpButton({ eventId, isLoggedIn, isFull, existingStatus }: Prop
     return (
       <div style={{
         padding: '14px 24px', borderRadius: 999, textAlign: 'center',
-        background: 'rgba(255,255,255,.06)', color: 'rgba(255,255,255,.3)',
-        fontWeight: 700, fontSize: 15,
+        background: 'rgba(45,24,16,.05)', border: '1px solid rgba(45,24,16,.1)',
+        color: 'rgba(45,24,16,.4)', fontWeight: 700, fontSize: 15,
       }}>
         This meetup is full
       </div>

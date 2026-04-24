@@ -58,6 +58,7 @@ export interface ApiEventSummary {
 
 export interface ApiAttendee {
   id: string;
+  rsvp_id: string;
   name: string;
   nationality: string | null;
   bio: string | null;
@@ -82,6 +83,7 @@ export interface ApiEventDetail extends ApiEventSummary {
   requirements: string[];
   payment_method: string | null;
   fee_note: string | null;
+  contact_link: string | null;
   host: ApiHost | null;
   attendees: ApiAttendee[];
 }
@@ -93,6 +95,8 @@ export interface ApiLanguage {
 
 export interface ApiProfile {
   id: string;
+  first_name: string | null;
+  last_name: string | null;
   name: string;
   nationality: string | null;
   location: string | null;
@@ -123,13 +127,39 @@ export interface ApiProfile {
     time: string;
     area: string | null;
   }[];
-  hosted_events: {
-    event_id: string;
-    title: string;
-    date: string;
-    time: string;
-    area: string | null;
-  }[];
+  hosted_events: ApiHostedEvent[];
+}
+
+export interface ApiHostedEvent {
+  id: string;
+  title: string;
+  date: string;
+  time: string;
+  area: string | null;
+  capacity: number;
+  fee: number;
+  description: string | null;
+  google_map_url: string | null;
+  naver_map_url: string | null;
+  approved_count: number;
+  viewer_rsvp: string | null;
+  meeting_details: string | null;
+}
+
+export interface ApiRsvpEntry {
+  rsvp_id: string;
+  user_id: string;
+  user_name: string;
+  user_image: string | null;
+  user_nationality: string | null;
+  message: string | null;
+}
+
+export interface ApiHostEvent extends ApiHostedEvent {
+  location: string;
+  meeting_details: string | null;
+  pending_rsvps: ApiRsvpEntry[];
+  approved_rsvps: ApiRsvpEntry[];
 }
 
 export interface ApiPendingRsvp {

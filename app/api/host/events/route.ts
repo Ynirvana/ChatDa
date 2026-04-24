@@ -11,6 +11,8 @@ export async function POST(req: Request) {
     capacity: number;
     fee?: number;
     description?: string;
+    cover_image?: string | null;
+    contact_link?: string | null;
   };
 
   if (!body.title || !body.date || !body.time || !body.location || !body.capacity) {

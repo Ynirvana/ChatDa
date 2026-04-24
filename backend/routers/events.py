@@ -37,6 +37,7 @@ class EventOut(BaseModel):
 
 class AttendeeOut(BaseModel):
     id: str
+    rsvp_id: str
     name: str
     nationality: str | None
     bio: str | None
@@ -71,6 +72,7 @@ class EventDetailOut(BaseModel):
     requirements: list[str]
     payment_method: str | None
     fee_note: str | None
+    contact_link: str | None
     approved_count: int
     host: HostOut | None
     attendees: list[AttendeeOut]
@@ -180,14 +182,14 @@ async def get_event(
         attendees: list[AttendeeOut] = []
     else:
         result = await db.execute(
-            select(User)
+            select(User, Rsvp.id.label("rsvp_id"))
             .join(Rsvp, and_(Rsvp.user_id == User.id, Rsvp.event_id == event_id, Rsvp.status == "approved"))
         )
-        attendee_users = result.scalars().all()
+        attendee_rows = result.all()
 
         # Social links for attendees
-        if attendee_users:
-            ids = [u.id for u in attendee_users]
+        if attendee_rows:
+            ids = [row[0].id for row in attendee_rows]
             links_result = await db.execute(
                 select(SocialLink).where(SocialLink.user_id.in_(ids))
             )
@@ -197,14 +199,14 @@ async def get_event(
 
         attendees = [
             AttendeeOut(
-                id=u.id, name=u.name, nationality=u.nationality,
+                id=u.id, rsvp_id=rsvp_id, name=u.name, nationality=u.nationality,
                 bio=u.bio, profile_image=u.profile_image,
                 social_links=[
                     {"platform": l.platform, "url": l.url}
                     for l in all_links if l.user_id == u.id
                 ],
             )
-            for u in attendee_users
+            for u, rsvp_id in attendee_rows
         ]
 
     approved_count_result = await db.execute(
@@ -225,6 +227,7 @@ async def get_event(
         requirements=json.loads(event.requirements) if event.requirements else [],
         payment_method=event.payment_method,
         fee_note=event.fee_note,
+        contact_link=event.contact_link,
         approved_count=int(approved_count),
         host=host_out,
         attendees=attendees,

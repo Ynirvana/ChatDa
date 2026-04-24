@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 
-export function CopyEventLink({ eventId, title }: { eventId: string; title?: string }) {
+export function CopyEventLink({ eventId, title, light = false }: { eventId: string; title?: string; light?: boolean }) {
   const [copied, setCopied] = useState(false);
 
   const handleClick = async (e: React.MouseEvent) => {
@@ -30,10 +30,10 @@ export function CopyEventLink({ eventId, title }: { eventId: string; title?: str
       style={{
         display: 'inline-flex', alignItems: 'center', gap: 6,
         padding: '4px 10px', borderRadius: 999, flexShrink: 0,
-        background: copied ? 'rgba(74,222,128,.2)' : 'rgba(255,255,255,.08)',
-        border: `1px solid ${copied ? 'rgba(74,222,128,.5)' : 'rgba(255,255,255,.15)'}`,
+        background: copied ? 'rgba(74,222,128,.15)' : light ? 'rgba(45,24,16,.04)' : 'rgba(255,255,255,.08)',
+        border: `1px solid ${copied ? 'rgba(74,222,128,.5)' : light ? 'rgba(45,24,16,.15)' : 'rgba(255,255,255,.15)'}`,
         fontSize: 11, fontWeight: 700, cursor: 'pointer',
-        color: copied ? '#4ade80' : 'rgba(255,255,255,.7)',
+        color: copied ? '#00957A' : light ? 'rgba(45,24,16,.5)' : 'rgba(255,255,255,.7)',
         fontFamily: 'inherit',
       }}
     >

@@ -3,10 +3,10 @@ import { proxyToBackend } from '@/lib/proxy';
 export async function PATCH(req: Request) {
   const { rsvpId, status } = await req.json() as {
     rsvpId: string;
-    status: 'approved' | 'rejected';
+    status: 'approved' | 'rejected' | 'cancelled';
   };
 
-  if (!rsvpId || !['approved', 'rejected'].includes(status)) {
+  if (!rsvpId || !['approved', 'rejected', 'cancelled'].includes(status)) {
     return Response.json({ error: 'Invalid params' }, { status: 400 });
   }
 
