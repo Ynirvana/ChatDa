@@ -15,17 +15,45 @@ When editing existing code:
 
 # Task Process — MANDATORY, NO EXCEPTIONS
 
-Every feature or bug fix requires a task folder under `docs/tasks/NN-name/` with 3 files:
-- `spec.md` — Goal, Scope, Completion criteria
-- `status.md` — State, Work log, Decisions, Blockers
-- `qa.md` — Auto checks, Manual checks, Summary
+## Directory structure
+
+```
+docs/tasks/
+  00-template/          ← template files (spec.md, status.md, qa.md, log.md)
+  YYYY-MM-DD/           ← one folder per working day
+    log.md              ← miscellaneous changes (no full task needed)
+    01-task-name/       ← numbering resets each day
+      spec.md
+      status.md
+      qa.md
+    02-task-name/
+      ...
+```
+
+## Task vs log — when to use which
+
+Use a **full task folder** when the change needs spec confirmation before coding:
+- Requires discussing scope or completion criteria with the user
+- Involves DB / API changes
+- Has meaningful QA steps to verify
+- Takes more than ~15 minutes to implement
+
+Use **`log.md`** for everything else ("chores"):
+- Self-contained, obvious change — no spec needed
+- Done in minutes
+- Copy tweaks, minor redirects, removing a UI element, small guard additions
+
+Rule of thumb: **if there's a reason to write a spec, make it a task. Otherwise, log it.**
+
+## Full task — steps
 
 **Starting a new task:**
-1. Create the task folder and fill in `spec.md` first
+1. Create `docs/tasks/YYYY-MM-DD/NN-name/` and fill in `spec.md` first
 2. Confirm completion criteria with the user **before writing any code**
 3. Implement, updating `status.md` work log after each meaningful change
-4. Run auto QA (`npx tsc --noEmit`, `npm run lint`, task-specific checks) and fill in `qa.md`
-5. Set state to `HUMAN_CHECK_PENDING` — do not mark `DONE` until the user confirms manual checks pass
+4. Fill in `status.md` **Feature description** — plain-language explanation of what the feature does
+5. Run auto QA (`npx tsc --noEmit`, `npm run lint`, task-specific checks) and fill in `qa.md`
+6. Set state to `HUMAN_CHECK_PENDING` — do not mark `DONE` until the user confirms manual checks pass
 
 **Starting a session on an existing task:**
 1. Read `spec.md`, `status.md`, `qa.md` in the task folder
@@ -51,3 +79,4 @@ Template files are in `docs/tasks/00-template/`.
 @docs/claudeCode/4-forbidden.md
 @docs/claudeCode/5-schema.md
 @docs/claudeCode/6-api.md
+@docs/claudeCode/7-infra.md

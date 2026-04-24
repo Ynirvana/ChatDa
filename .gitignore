@@ -58,3 +58,6 @@ venv/
 
 # local screenshots — not for repo
 /img/
+
+# DB backups — large files, not for repo
+/backups/

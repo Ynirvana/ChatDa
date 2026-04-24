@@ -25,7 +25,9 @@ Core table. One row per registered user.
 | Column | Type | Notes |
 |---|---|---|
 | id | text PK | nanoid |
-| name | text | display name |
+| firstName | text | nullable |
+| lastName | text | nullable |
+| name | text | synced = `first_name + " " + last_name` |
 | email | text unique | |
 | googleId | text unique | from OAuth |
 | nationality | text | ISO country name |

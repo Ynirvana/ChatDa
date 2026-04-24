@@ -11,7 +11,7 @@
 
 set -euo pipefail
 
-BACKUP_DIR="${BACKUP_DIR:-/home/dykim/chatda-backups}"
+BACKUP_DIR="${BACKUP_DIR:-$(cd "$(dirname "$0")/.." && pwd)/backups}"
 DB_CONTAINER="${DB_CONTAINER:-chatda-db-1}"
 DB_NAME="${DB_NAME:-chatda}"
 DB_USER="${DB_USER:-chatda}"

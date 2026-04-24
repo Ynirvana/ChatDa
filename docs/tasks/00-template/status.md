@@ -14,3 +14,6 @@
 
 **Blockers:**
 - None
+
+**Feature description:** *(plain-language explanation of what this feature does — fill in when implementation is complete)*
+- 
