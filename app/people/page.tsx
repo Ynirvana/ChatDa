@@ -153,6 +153,7 @@ export default async function PeoplePage() {
           authed={authed}
           needsOnboarding={needsOnboarding}
           awaitingApproval={awaitingApproval}
+          currentUserId={session?.user?.id}
         />
       </section>
     </div>

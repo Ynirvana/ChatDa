@@ -80,6 +80,7 @@ export function PersonCard({
   needsOnboarding = false,
   lockedHref,
   unblurred = false,
+  isMe = false,
 }: {
   person: PersonData;
   authed: boolean;
@@ -90,6 +91,7 @@ export function PersonCard({
   lockedHref?: string;
   /** 사진/이름 블러를 건너뛰고 authed인 것처럼 보이게 (awaiting-approval 첫 3장 teaser 용). 클릭은 여전히 lockedHref로 막힘. */
   unblurred?: boolean;
+  isMe?: boolean;
 }) {
   // 시각적으로 authed 취급 (blur/overlay 무시). 클릭/연결 권한은 별도.
   const visuallyAuthed = authed || unblurred;
@@ -364,7 +366,17 @@ export function PersonCard({
         )}
 
         {/* CTA — outline 스타일 */}
-        {authed ? (
+        {isMe ? (
+          <div style={{
+            padding: '12px 0', borderRadius: 999,
+            fontSize: 12, fontWeight: 700, textAlign: 'center',
+            color: 'rgba(45, 24, 16, .4)',
+            background: 'rgba(45, 24, 16, .04)',
+            border: '1px solid rgba(45, 24, 16, .1)',
+          }}>
+            You
+          </div>
+        ) : authed ? (
           connStatus === 'accepted' ? (
             <div style={{
               padding: '12px 0', borderRadius: 999,

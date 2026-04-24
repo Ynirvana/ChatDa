@@ -19,11 +19,13 @@ export default function PeopleClient({
   authed,
   needsOnboarding = false,
   awaitingApproval = false,
+  currentUserId,
 }: {
   users: PersonData[];
   authed: boolean;
   needsOnboarding?: boolean;
   awaitingApproval?: boolean;
+  currentUserId?: string;
 }) {
   const router = useRouter();
   const [search, setSearch]   = useState('');
@@ -210,6 +212,7 @@ export default function PeopleClient({
                     lockedHref={lockedHref}
                     unblurred={unblurred}
                     onConnect={authed ? handleConnect : undefined}
+                    isMe={!!currentUserId && u.id === currentUserId}
                   />
                 );
                 if (heavilyBlurred) {

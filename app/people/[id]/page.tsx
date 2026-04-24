@@ -1,4 +1,7 @@
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
+
+export const revalidate = 0;
 import { auth } from '@/lib/auth';
 import { isAdminEmail } from '@/lib/admin';
 import { backendFetch, type ApiProfile } from '@/lib/server-api';
@@ -9,6 +12,9 @@ import { USER_STATUSES, LOOKING_FOR_OPTIONS } from '@/lib/constants';
 import { formatStay } from '@/lib/stay-duration';
 import { notFound } from 'next/navigation';
 import { ProfileConnectButton } from './ProfileConnectButton';
+import { EventRsvpButton } from './EventRsvpButton';
+import { CopyEventLink } from '@/components/CopyEventLink';
+import { computeCompleteness } from '@/lib/completeness';
 
 const STATUS_COLORS: Record<string, string> = {
   local: '#00957A',
@@ -49,7 +55,12 @@ interface UserProfile {
   social_platforms: string[];
   tags: { tag: string; category: string }[];
   connection: { id: string; status: string } | null;
-  hosted_events: { id: string; title: string; date: string; area: string | null }[];
+  hosted_events: {
+    id: string; title: string; date: string; time: string; area: string | null;
+    capacity: number; fee: number; description: string | null;
+    google_map_url: string | null; naver_map_url: string | null;
+    approved_count: number; viewer_rsvp: string | null; meeting_details: string | null;
+  }[];
   attended_count: number;
   mutual_count: number;
   created_at: string | null;
@@ -79,6 +90,9 @@ export default async function PersonProfilePage({ params }: { params: Promise<{ 
     try {
       const me = await backendFetch<ApiProfile>('/users/me');
       onboarded = !!me.onboarding_complete;
+      if (onboarded && computeCompleteness(me).percent < 100) {
+        redirect('/profile?incomplete=1');
+      }
     } catch {
       onboarded = false;
     }
@@ -98,7 +112,8 @@ export default async function PersonProfilePage({ params }: { params: Promise<{ 
   const flag = FLAG_MAP[profile.nationality ?? ''] ?? '🌍';
   const canDo = profile.tags.filter(t => t.category === 'can_do');
   const lookingFor = profile.tags.filter(t => t.category === 'looking_for');
-  const isConnected = profile.connection?.status === 'accepted';
+  const isMe = session?.user?.id === profile.id;
+  const isConnected = isMe || profile.connection?.status === 'accepted';
   const stay = formatStay(profile.status, profile.stay_arrived, profile.stay_departed);
   const stayColor = stay?.emphasis === 'upcoming' ? '#E84F3D'
     : stay?.emphasis === 'past' ? 'rgba(45, 24, 16, .5)'
@@ -136,7 +151,7 @@ export default async function PersonProfilePage({ params }: { params: Promise<{ 
               <strong style={{ color: '#2D1810' }}>Finish your profile</strong> to see this person&apos;s full bio and connect.
             </div>
             <Link
-              href="/onboarding"
+              href="/profile"
               style={{
                 padding: '10px 18px',
                 borderRadius: 999,
@@ -463,30 +478,82 @@ export default async function PersonProfilePage({ params }: { params: Promise<{ 
           </Card>
         )}
 
-        {/* Hosted events — MVP에서 숨김. Meetups 되살릴 때 복원. */}
-        {false && profile.hosted_events.length > 0 && (
+        {/* Hosted events */}
+        {profile.hosted_events.length > 0 && (
           <div style={{ marginBottom: 16 }}>
-            <p style={{ fontSize: 14, fontWeight: 800, color: 'rgba(45, 24, 16, .55)', marginBottom: 10 }}>
-              Hosted Meetups
+            <p style={{ fontSize: 12, fontWeight: 800, color: 'rgba(45, 24, 16, .5)', textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 10 }}>
+              Hosting
             </p>
-            <div style={{ display: 'grid', gap: 8 }}>
-              {profile.hosted_events.map(e => (
-                <Link key={e.id} href={`/meetups/${e.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
-                  <Card light style={{ padding: 14 }}>
-                    <p style={{ fontSize: 15, fontWeight: 700, marginBottom: 4 }}>{e.title}</p>
-                    <p style={{ fontSize: 12, color: 'rgba(45, 24, 16, .5)' }}>
-                      {new Date(e.date + 'T00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                      {e.area ? ` · ${e.area}` : ''}
-                    </p>
-                  </Card>
-                </Link>
-              ))}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {profile.hosted_events.map(e => {
+                const d = new Date(e.date + 'T00:00');
+                const dateStr = d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+                const going = e.approved_count + 1; // host counts as going
+                const spots = e.capacity - going;
+                return (
+                  <div key={e.id} style={{
+                    padding: 14, borderRadius: 14,
+                    background: 'rgba(255, 107, 91, .04)',
+                    border: '1px solid rgba(255, 107, 91, .18)',
+                  }}>
+                    {/* Clickable header → meetup detail page */}
+                    <Link href={`/meetups/${e.id}`} style={{ textDecoration: 'none', display: 'block', marginBottom: 8 }}>
+                      <p style={{ fontSize: 14, fontWeight: 800, color: '#2D1810', marginBottom: 3 }}>{e.title}</p>
+                      <p style={{ fontSize: 12, color: 'rgba(45,24,16,.55)', marginBottom: 2 }}>
+                        {dateStr} · {e.time}{e.area ? ` · ${e.area}` : ''}
+                      </p>
+                      <p style={{ fontSize: 12, color: 'rgba(45,24,16,.4)' }}>
+                        {e.fee === 0 ? 'Free' : `₩${e.fee.toLocaleString()}`} · {spots > 0 ? `${spots} spot${spots > 1 ? 's' : ''} left` : 'Full'}
+                      </p>
+                      {e.description && (
+                        <p style={{ fontSize: 13, color: 'rgba(45,24,16,.65)', lineHeight: 1.5, marginTop: 6 }}>
+                          {e.description}
+                        </p>
+                      )}
+                    </Link>
+                    {/* Interactive elements outside the Link */}
+                    {(e.google_map_url || e.naver_map_url) && (
+                      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
+                        {e.naver_map_url && (
+                          <a href={e.naver_map_url} target="_blank" rel="noopener noreferrer" style={{
+                            fontSize: 11, fontWeight: 700, padding: '4px 10px', borderRadius: 999,
+                            background: 'rgba(3, 199, 90, .1)', color: '#03C75A',
+                            border: '1px solid rgba(3, 199, 90, .25)', textDecoration: 'none',
+                          }}>Naver Map ↗</a>
+                        )}
+                        {e.google_map_url && (
+                          <a href={e.google_map_url} target="_blank" rel="noopener noreferrer" style={{
+                            fontSize: 11, fontWeight: 700, padding: '4px 10px', borderRadius: 999,
+                            background: 'rgba(66, 133, 244, .1)', color: '#4285F4',
+                            border: '1px solid rgba(66, 133, 244, .25)', textDecoration: 'none',
+                          }}>Google Map ↗</a>
+                        )}
+                      </div>
+                    )}
+                    {e.meeting_details && (
+                      <div style={{
+                        marginBottom: 8, padding: '8px 12px', borderRadius: 10,
+                        background: 'rgba(0, 184, 148, .07)', border: '1px solid rgba(0, 184, 148, .2)',
+                      }}>
+                        <p style={{ fontSize: 11, fontWeight: 800, color: '#00957A', marginBottom: 2 }}>Meeting details</p>
+                        <p style={{ fontSize: 12, color: 'rgba(45,24,16,.7)' }}>{e.meeting_details}</p>
+                      </div>
+                    )}
+                    <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+                      <CopyEventLink eventId={e.id} title={e.title} light />
+                      {authed && !isMe && (
+                        <EventRsvpButton eventId={e.id} initialStatus={e.viewer_rsvp} />
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}
 
         {/* Connect action */}
-        {authed ? (
+        {authed && session?.user?.id === profile.id ? null : authed ? (
           <ProfileConnectButton
             personId={profile.id}
             initialStatus={profile.connection?.status ?? null}
