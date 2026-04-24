@@ -246,6 +246,12 @@ async def directory(
             if c.status == "accepted":
                 connected_ids.add(other)
 
+    # Hosting: users with any upcoming event (date string >= today in YYYY-MM-DD)
+    hosting_result = await db.execute(
+        select(Event.host_id).where(Event.date >= date.today().isoformat()).distinct()
+    )
+    hosting_user_ids: set[str] = {row[0] for row in hosting_result.all()}
+
     # Mutual connections: 각 target이 accepted인 사람들의 집합 만든 뒤 viewer connected_ids와 교집합 크기
     mutual_by_user: dict[str, int] = {}
     if viewer_id and connected_ids:
@@ -292,6 +298,8 @@ async def directory(
                 "tags": tags_by_user.get(u.id, []),
                 "connection": connection_map.get(u.id),
                 "mutual_count": mutual_by_user.get(u.id, 0),
+                "created_at": u.created_at.isoformat() if u.created_at else None,
+                "is_hosting": u.id in hosting_user_ids,
             }
             for u in all_users
             if u.id != viewer_id  # don't show self

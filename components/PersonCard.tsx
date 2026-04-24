@@ -69,6 +69,8 @@ export interface PersonData {
   tags?: PersonTag[];
   connection?: PersonConnection | null;
   mutual_count?: number;
+  created_at?: string | null;
+  is_hosting?: boolean;
 }
 
 export function PersonCard({
