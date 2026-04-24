@@ -5,7 +5,8 @@ import { users, approvalHistory } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 
 interface Body {
-  name: string;
+  firstName: string;
+  lastName: string;
   nationality: string;
   location?: string;
   locationDistrict?: string | null;
@@ -25,9 +26,9 @@ const CUSTOM_MAX = 30;
 
 export async function POST(req: Request) {
   const body = await req.json() as Body;
-  const { name, nationality, location, locationDistrict, status, school, gender, age, lookingFor, lookingForCustom, bio, profileImage, profileImages, socialLinks } = body;
+  const { firstName, lastName, nationality, location, locationDistrict, status, school, gender, age, lookingFor, lookingForCustom, bio, profileImage, profileImages, socialLinks } = body;
 
-  if (!name?.trim() || !nationality || !location || !status) {
+  if (!firstName?.trim() || !lastName?.trim() || !nationality || !location || !status) {
     return Response.json({ error: 'Missing required fields' }, { status: 400 });
   }
   if (!gender) {
@@ -82,7 +83,8 @@ export async function POST(req: Request) {
   }
 
   const res = await proxyToBackend(req, '/users/onboarding', 'POST', {
-    name,
+    first_name: firstName.trim(),
+    last_name: lastName.trim(),
     nationality,
     location,
     location_district: location === 'Seoul' ? (locationDistrict || null) : null,

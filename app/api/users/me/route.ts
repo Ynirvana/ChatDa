@@ -5,6 +5,8 @@ import { users } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 
 interface Body {
+  firstName?: string | null;
+  lastName?: string | null;
   bio?: string | null;
   stayArrived?: string | null;  // YYYY-MM-DD
   stayDeparted?: string | null;
@@ -37,6 +39,8 @@ export async function PATCH(req: Request) {
 
   // snake_case로 백엔드 전달 + undefined 필드는 제외 (partial update 의미 유지)
   const payload: Record<string, unknown> = {};
+  if ('firstName' in body) payload.first_name = body.firstName ?? null;
+  if ('lastName' in body) payload.last_name = body.lastName ?? null;
   if ('bio' in body) payload.bio = body.bio ?? null;
   if ('stayArrived' in body) payload.stay_arrived = body.stayArrived ?? null;
   if ('stayDeparted' in body) payload.stay_departed = body.stayDeparted ?? null;

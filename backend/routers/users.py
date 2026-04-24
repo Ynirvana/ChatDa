@@ -35,7 +35,8 @@ class TagIn(BaseModel):
 
 
 class OnboardingBody(BaseModel):
-    name: str = Field(min_length=1, max_length=80)
+    first_name: str = Field(min_length=1, max_length=40)
+    last_name: str = Field(min_length=1, max_length=40)
     nationality: str = Field(min_length=1, max_length=60)
     location: str | None = Field(default=None, max_length=60)
     location_district: str | None = Field(default=None, max_length=60)
@@ -98,6 +99,8 @@ class OnboardingBody(BaseModel):
 
 class ProfileOut(BaseModel):
     id: str
+    first_name: str | None = None
+    last_name: str | None = None
     name: str
     nationality: str | None
     location: str | None
@@ -128,6 +131,8 @@ class ProfileOut(BaseModel):
 
 class ProfilePatchBody(BaseModel):
     """Step 2 필드만 업데이트. 전부 optional — partial update."""
+    first_name: str | None = Field(default=None, max_length=40)
+    last_name: str | None = Field(default=None, max_length=40)
     bio: str | None = Field(default=None, max_length=500)
     stay_arrived: date | None = None
     stay_departed: date | None = None
@@ -264,7 +269,7 @@ async def directory(
             peers_by_user.setdefault(c.recipient_id, set()).add(c.requester_id)
         for u in all_users:
             if u.id == viewer_id:
-                continue
+                continue  # mutual connections don't apply to self
             peers = peers_by_user.get(u.id, set())
             count = len(peers & connected_ids)
             if count > 0:
@@ -274,6 +279,8 @@ async def directory(
         "users": [
             {
                 "id": u.id,
+                "first_name": u.first_name,
+                "last_name": u.last_name,
                 "name": u.name,
                 "nationality": u.nationality,
                 "location": u.location,
@@ -302,7 +309,6 @@ async def directory(
                 "is_hosting": u.id in hosting_user_ids,
             }
             for u in all_users
-            if u.id != viewer_id  # don't show self
         ]
     }
 
@@ -345,13 +351,60 @@ async def get_public_profile(
     # age/gender 비공개 토글 — 본인 viewer엔 항상 노출, 그 외엔 show_personal_info=true일 때만
     show_personal_info = (viewer_id == user_id) or user.show_personal_info
 
-    # Events hosted
+    # Events hosted — upcoming only (date >= today), ordered soonest first
+    today_str = date.today().isoformat()
     hosted_result = await db.execute(
-        select(Event).where(Event.host_id == user_id).order_by(Event.date.desc())
+        select(Event)
+        .where(Event.host_id == user_id, Event.date >= today_str)
+        .order_by(Event.date)
     )
+    upcoming_events = hosted_result.scalars().all()
+
+    # Viewer's RSVPs for hosted events (to show status on each card)
+    viewer_rsvps: dict[str, str] = {}
+    if viewer_id and upcoming_events:
+        event_ids = [e.id for e in upcoming_events]
+        vr_result = await db.execute(
+            select(Rsvp).where(
+                Rsvp.user_id == viewer_id,
+                Rsvp.event_id.in_(event_ids),
+            )
+        )
+        for r in vr_result.scalars().all():
+            viewer_rsvps[r.event_id] = r.status
+
+    # Approved attendee count per event
+    approved_counts: dict[str, int] = {}
+    if upcoming_events:
+        ac_result = await db.execute(
+            select(Rsvp).where(
+                Rsvp.event_id.in_([e.id for e in upcoming_events]),
+                Rsvp.status == "approved",
+            )
+        )
+        for r in ac_result.scalars().all():
+            approved_counts[r.event_id] = approved_counts.get(r.event_id, 0) + 1
+
     hosted = [
-        {"id": e.id, "title": e.title, "date": e.date, "area": e.area}
-        for e in hosted_result.scalars().all()
+        {
+            "id": e.id,
+            "title": e.title,
+            "date": e.date,
+            "time": e.time,
+            "area": e.area,
+            "capacity": e.capacity,
+            "fee": e.fee,
+            "description": e.description,
+            "google_map_url": e.google_map_url,
+            "naver_map_url": e.naver_map_url,
+            "approved_count": approved_counts.get(e.id, 0),
+            "viewer_rsvp": viewer_rsvps.get(e.id),
+            # meeting_details only visible to approved attendees or the host
+            "meeting_details": e.directions if (
+                viewer_id == user_id or viewer_rsvps.get(e.id) == "approved"
+            ) else None,
+        }
+        for e in upcoming_events
     ]
 
     # Events attended (approved RSVPs)
@@ -389,6 +442,8 @@ async def get_public_profile(
 
     return {
         "id": user.id,
+        "first_name": user.first_name,
+        "last_name": user.last_name,
         "name": user.name,
         "nationality": user.nationality,
         "location": user.location,
@@ -427,7 +482,9 @@ async def complete_onboarding(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    user.name = body.name.strip()
+    user.first_name = body.first_name.strip()
+    user.last_name = body.last_name.strip()
+    user.name = f"{user.first_name} {user.last_name}"
     user.nationality = body.nationality
     user.location = body.location or None
     # District는 Seoul일 때만 의미 있음 — 서버에서도 방어
@@ -559,6 +616,15 @@ async def patch_my_profile(
 
     # Pydantic exclude_unset으로 실제 들어온 필드만 업데이트
     data = body.model_dump(exclude_unset=True)
+    if "first_name" in data or "last_name" in data:
+        fn = (data.get("first_name") or user.first_name or "").strip()
+        ln = (data.get("last_name") or user.last_name or "").strip()
+        if "first_name" in data:
+            user.first_name = fn or None
+        if "last_name" in data:
+            user.last_name = ln or None
+        if fn or ln:
+            user.name = f"{fn} {ln}".strip()
     if "bio" in data:
         v = data["bio"]
         user.bio = v.strip() if v else None

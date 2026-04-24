@@ -13,7 +13,8 @@ import { FilterSelect, type FilterOption } from '@/components/FilterSelect';
 import { track } from '@/lib/analytics';
 
 type InitialData = {
-  name: string;
+  firstName: string;
+  lastName: string;
   nationality: string;
   location: string;
   locationDistrict: string;
@@ -32,11 +33,9 @@ type InitialData = {
 export default function OnboardingForm({
   isReturning,
   initial,
-  googleImage = '',
 }: {
   isReturning: boolean;
   initial?: InitialData;
-  googleImage?: string;
 }) {
   const router = useRouter();
   const { update: updateSession } = useSession();
@@ -46,12 +45,12 @@ export default function OnboardingForm({
   const [profileImages, setProfileImages] = useState<string[]>(() => {
     if (initial?.profileImages && initial.profileImages.length > 0) return initial.profileImages.slice(0, MAX_PHOTOS);
     if (initial?.profileImage) return [initial.profileImage];
-    if (googleImage) return [googleImage];
     return [];
   });
   const primaryImage = profileImages[0] ?? '';
   const [form, setForm] = useState({
-    name: initial?.name ?? '',
+    firstName: initial?.firstName ?? '',
+    lastName: initial?.lastName ?? '',
     nationality: initial?.nationality ?? '',
     location: initial?.location ?? '',
     locationDistrict: initial?.locationDistrict ?? '',
@@ -88,7 +87,8 @@ export default function OnboardingForm({
   const ageOk = !form.age || (Number.isInteger(ageNum) && ageNum >= AGE_MIN && ageNum <= AGE_MAX);
   const canSubmit =
     profileImages.length >= 1 &&   // Photo 필수 — 1장 이상
-    form.name.trim() &&
+    form.firstName.trim() &&
+    form.lastName.trim() &&
     form.nationality &&
     form.location &&
     form.status &&
@@ -299,15 +299,27 @@ export default function OnboardingForm({
           </div>
 
           {/* Name */}
-          <div>
-            <label style={labelStyle}>Display name *</label>
-            <input
-              className="input-light"
-              style={inputStyle}
-              value={form.name}
-              onChange={e => set('name', e.target.value)}
-              placeholder="Your name"
-            />
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div>
+              <label style={labelStyle}>First name *</label>
+              <input
+                className="input-light"
+                style={inputStyle}
+                value={form.firstName}
+                onChange={e => set('firstName', e.target.value)}
+                placeholder="First name"
+              />
+            </div>
+            <div>
+              <label style={labelStyle}>Last name *</label>
+              <input
+                className="input-light"
+                style={inputStyle}
+                value={form.lastName}
+                onChange={e => set('lastName', e.target.value)}
+                placeholder="Last name"
+              />
+            </div>
           </div>
 
           {/* Gender + Age row */}
@@ -592,28 +604,6 @@ export default function OnboardingForm({
             )}
           </div>
 
-          {/* Quality / suspension notice — 신규 가입 때만 (기존 유저 편집은 skip) */}
-          {!isReturning && (
-            <div style={{
-              marginTop: 8, marginBottom: 8,
-              padding: '14px 16px', borderRadius: 12,
-              background: 'rgba(255, 196, 140, .15)',
-              border: '1px solid rgba(255, 140, 120, .28)',
-            }}>
-              <p style={{
-                fontSize: 12, fontWeight: 800, letterSpacing: 0.3,
-                color: '#D97706', textTransform: 'uppercase', marginBottom: 6,
-              }}>
-                Quick note
-              </p>
-              <p style={{
-                fontSize: 13, lineHeight: 1.55,
-                color: 'rgba(45, 24, 16, .75)',
-              }}>
-                We&apos;re keeping quality high while we&apos;re small. Profiles that look incomplete or spammy may be suspended — please take your profile seriously.
-              </p>
-            </div>
-          )}
 
           {/* Submit */}
           <Button

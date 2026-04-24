@@ -61,8 +61,10 @@ export const KOREAN_UNIVERSITIES = [
 ] as const;
 
 export const PLATFORMS = [
-  { id: 'facebook',  label: 'Facebook',  placeholder: 'https://facebook.com/your_facebook_name' },
+  { id: 'kakao',     label: 'KakaoTalk', placeholder: 'KakaoTalk ID or open chat link' },
+  { id: 'whatsapp',  label: 'WhatsApp',  placeholder: 'Phone number or https://wa.me/your_number' },
   { id: 'instagram', label: 'Instagram', placeholder: 'https://instagram.com/your_instagram_name or @your_instagram_name' },
+  { id: 'facebook',  label: 'Facebook',  placeholder: 'https://facebook.com/your_facebook_name' },
   { id: 'threads',   label: 'Threads',   placeholder: 'https://threads.net/@yourname' },
   { id: 'x',         label: 'X',         placeholder: 'https://twitter.com/Your_Twitter_Name or @Your_Twitter_Name' },
   { id: 'linkedin',  label: 'LinkedIn',  placeholder: 'https://linkedin.com/in/yourlinkedinname' },

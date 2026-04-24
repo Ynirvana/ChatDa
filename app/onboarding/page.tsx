@@ -15,7 +15,7 @@ export default async function OnboardingPage({
   const isEditMode = edit === '1';
 
   let isReturning = false;
-  let initial: { name: string; nationality: string; location: string; locationDistrict: string; status: string; school: string; gender: string; age: string; lookingFor: string[]; lookingForCustom: string; bio: string; profileImage: string; profileImages: string[]; socialLinks: Record<string, string> } | undefined;
+  let initial: { firstName: string; lastName: string; nationality: string; location: string; locationDistrict: string; status: string; school: string; gender: string; age: string; lookingFor: string[]; lookingForCustom: string; bio: string; profileImage: string; profileImages: string[]; socialLinks: Record<string, string> } | undefined;
 
   try {
     const profile = await backendFetch<ApiProfile>('/users/me');
@@ -23,7 +23,8 @@ export default async function OnboardingPage({
     if (isReturning) {
       if (!isEditMode) redirect('/people');
       initial = {
-        name: profile.name ?? '',
+        firstName: profile.first_name ?? '',
+        lastName: profile.last_name ?? '',
         nationality: profile.nationality ?? '',
         location: profile.location ?? '',
         locationDistrict: profile.location_district ?? '',
@@ -43,7 +44,5 @@ export default async function OnboardingPage({
     // 신규 유저 (backend에 프로필 없음) — 빈 폼 노출
   }
 
-  const googleImage = session.user.image ?? '';
-
-  return <OnboardingForm isReturning={isReturning} initial={initial} googleImage={googleImage} />;
+  return <OnboardingForm isReturning={isReturning} initial={initial} />;
 }

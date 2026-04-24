@@ -63,7 +63,7 @@ export function ProfileEditProvider({ children }: { children: ReactNode }) {
       for (const reg of dirtyRegs) {
         await reg.save();
       }
-      router.refresh();
+      router.push('/people');
     } catch (e) {
       setError(e instanceof Error && e.message ? e.message : 'Some changes failed to save. Please retry.');
     } finally {

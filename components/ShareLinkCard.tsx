@@ -45,7 +45,7 @@ export function ShareLinkCard({ userId, userName }: { userId: string; userName: 
   return (
     <div>
       <p style={{ fontSize: 13, color: 'rgba(45, 24, 16, .62)', lineHeight: 1.55, marginBottom: 12 }}>
-        Share this link on Instagram, Threads, or anywhere — friends who click get a warm landing and can request an invite.
+        Know someone who&apos;d fit in here? Send them this link — they&apos;ll be able to request an invite.
       </p>
       <div style={{ display: 'flex', gap: 8, alignItems: 'stretch', flexWrap: 'wrap' }}>
         <input
@@ -102,7 +102,7 @@ export function ShareLinkCard({ userId, userName }: { userId: string; userName: 
         </button>
       </div>
       <p style={{ fontSize: 11, color: 'rgba(45, 24, 16, .45)', marginTop: 10 }}>
-        We track visits via this link (no personal info — just aggregate numbers for you and us).
+        We&apos;ll let you know how many people visited via your link.
       </p>
     </div>
   );

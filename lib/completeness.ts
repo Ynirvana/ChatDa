@@ -30,7 +30,6 @@ export function computeCompleteness(profile: ApiProfile): {
     (profile.tags ?? []).some(t => t.category === 'can_do'),
     (profile.languages ?? []).length > 0,
     (profile.interests ?? []).length > 0,
-    profile.social_links.length > 0,
   ];
   if (!isLocal) {
     items.push(!!profile.stay_arrived || !!profile.stay_departed);

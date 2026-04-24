@@ -6,9 +6,7 @@ import { Nav } from '@/components/ui/Nav';
 import { Card, Orb } from '@/components/ui/Card';
 import { backendFetch, type ApiProfile } from '@/lib/server-api';
 import { USER_STATUSES } from '@/lib/constants';
-import { formatTime } from '@/lib/utils';
 import { formatStay } from '@/lib/stay-duration';
-import { CopyEventLink } from '@/components/CopyEventLink';
 import { TagEditor } from '@/components/TagEditor';
 import { ConnectionRequests } from '@/components/ConnectionRequests';
 import { ProfileCompleteness } from '@/components/ProfileCompleteness';
@@ -20,19 +18,13 @@ import { MotivesEditor } from '@/components/MotivesEditor';
 import { SchoolEditor } from '@/components/SchoolEditor';
 import { PrivacyToggle } from '@/components/PrivacyToggle';
 import { PhotosEditor } from '@/components/PhotosEditor';
-import { ShareLinkCard } from '@/components/ShareLinkCard';
 import { PlatformIcon } from '@/components/ui/PlatformIcon';
 import { ProfileEditProvider } from '@/components/ProfileEditProvider';
+import { HostingSection } from '@/components/HostingSection';
+import type { ApiHostEvent } from '@/lib/server-api';
 
-const statusStyle: Record<string, { label: string; color: string; bg: string }> = {
-  pending:   { label: 'Pending',   color: '#C68600',  bg: 'rgba(255, 193, 7, .1)' },
-  approved:  { label: 'Approved',  color: '#00957A',  bg: 'rgba(0, 184, 148, .1)' },
-  rejected:  { label: 'Rejected',  color: 'rgba(45, 24, 16, .4)', bg: 'rgba(45, 24, 16, .05)' },
-  cancelled: { label: 'Cancelled', color: 'rgba(45, 24, 16, .4)', bg: 'rgba(45, 24, 16, .05)' },
-  hosting:   { label: 'Hosting',   color: '#FF6B5B',  bg: 'rgba(255, 107, 91, .12)' },
-};
 
-export default async function ProfilePage() {
+export default async function ProfilePage({ searchParams }: { searchParams: Promise<{ incomplete?: string }> }) {
   const session = await auth();
   if (!session?.user?.id) redirect('/login');
 
@@ -45,12 +37,32 @@ export default async function ProfilePage() {
 
   if (!profile!.onboarding_complete) redirect('/onboarding');
 
+  const hostEvents = await backendFetch<ApiHostEvent[]>('/host/events').catch(() => [] as ApiHostEvent[]);
+
+  const { incomplete } = await searchParams;
+
   return (
     <div className="page-bg-light" style={{ minHeight: '100vh' }}>
       <Nav user={session.user} isAdmin={isAdminEmail(session.user.email)} light />
       <Orb size={400} color="rgba(255, 140, 120, .15)" top={-50} left={-100} />
 
       <div style={{ maxWidth: 600, margin: '0 auto', padding: '40px 24px 80px', position: 'relative', zIndex: 1 }}>
+        {incomplete === '1' && (
+          <div style={{
+            marginBottom: 24,
+            padding: '16px 20px',
+            borderRadius: 16,
+            background: 'linear-gradient(135deg, rgba(255, 107, 91, .10), rgba(232, 67, 147, .08))',
+            border: '1px solid rgba(255, 107, 91, .28)',
+          }}>
+            <div style={{ fontSize: 15, fontWeight: 800, color: '#2D1810', marginBottom: 4 }}>
+              Complete your profile first
+            </div>
+            <div style={{ fontSize: 13, color: 'rgba(45, 24, 16, .65)', lineHeight: 1.5 }}>
+              Fill in all sections below to unlock other members&apos; profiles.
+            </div>
+          </div>
+        )}
         <ProfileEditProvider>
 
         {/* Completeness bar */}
@@ -215,97 +227,17 @@ export default async function ProfilePage() {
           <TagEditor initial={profile.tags ?? []} />
         </Card>
 
-        {/* Share link — 유저별 고유 URL, GA4 추적 + 미래 invite attribution 기반 */}
-        <Card light style={{ marginBottom: 24, padding: 20 }}>
-          <h2 style={{ fontSize: 18, fontWeight: 900, marginBottom: 8, color: '#2D1810' }}>Share ChatDa</h2>
-          <ShareLinkCard userId={profile.id} userName={profile.name} />
-        </Card>
-
-        {/* Privacy */}
+{/* Privacy */}
         <Card light style={{ marginBottom: 24, padding: 20 }}>
           <h2 style={{ fontSize: 18, fontWeight: 900, marginBottom: 14, color: '#2D1810' }}>Privacy</h2>
           <PrivacyToggle initial={profile.show_personal_info ?? true} />
         </Card>
 
-        {/* My Meetups — MVP에서 숨김. Meetups 되살릴 때 false → true 로 복원. */}
-        {false && <>
-        <h2 style={{ fontSize: 18, fontWeight: 900, marginBottom: 14, color: '#2D1810' }}>My Meetups</h2>
-
-        {(() => {
-          const items = [
-            ...profile.hosted_events.map(h => ({
-              key: `h-${h.event_id}`,
-              event_id: h.event_id,
-              title: h.title,
-              date: h.date,
-              time: h.time,
-              area: h.area,
-              statusKey: 'hosting',
-            })),
-            ...profile.rsvps.map(r => ({
-              key: `r-${r.rsvp_id}`,
-              event_id: r.event_id,
-              title: r.title,
-              date: r.date,
-              time: r.time,
-              area: r.area,
-              statusKey: r.status,
-            })),
-          ].sort((a, b) => a.date.localeCompare(b.date));
-
-          if (items.length === 0) {
-            return (
-              <Card light style={{ textAlign: 'center', padding: 40 }}>
-                <p style={{ color: 'rgba(45, 24, 16, .5)', marginBottom: 16 }}>No meetups yet.</p>
-                <Link href="/meetups" style={{
-                  display: 'inline-block', padding: '12px 26px', borderRadius: 999,
-                  background: 'linear-gradient(135deg, #FF6B5B, #E84393)',
-                  color: '#fff', fontWeight: 800, fontSize: 14, textDecoration: 'none',
-                  boxShadow: '0 4px 14px rgba(255, 107, 91, .3)',
-                }}>
-                  Browse Meetups →
-                </Link>
-              </Card>
-            );
-          }
-
-          return (
-            <div style={{ display: 'grid', gap: 12 }}>
-              {items.map(it => {
-                const s = statusStyle[it.statusKey] ?? statusStyle.pending;
-                const d = new Date(it.date + 'T00:00');
-                return (
-                  <Link key={it.key} href={`/meetups/${it.event_id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
-                    <Card light style={{ padding: 16 }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
-                        <div>
-                          <h3 style={{ fontSize: 16, fontWeight: 800, marginBottom: 4, color: '#2D1810' }}>{it.title}</h3>
-                          <p style={{ fontSize: 13, color: 'rgba(45, 24, 16, .55)' }}>
-                            {d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} · {formatTime(it.time)}
-                            {it.area ? ` · ${it.area}` : ''}
-                          </p>
-                        </div>
-                        <div style={{ display: 'flex', gap: 6, flexShrink: 0, alignItems: 'center' }}>
-                          {it.statusKey === 'hosting' && (
-                            <CopyEventLink eventId={it.event_id} title={it.title} />
-                          )}
-                          <span style={{
-                            fontSize: 12, fontWeight: 700, padding: '4px 10px',
-                            borderRadius: 999, background: s.bg,
-                            color: s.color, whiteSpace: 'nowrap',
-                          }}>
-                            {s.label}
-                          </span>
-                        </div>
-                      </div>
-                    </Card>
-                  </Link>
-                );
-              })}
-            </div>
-          );
-        })()}
-        </>}
+        {/* Hosting */}
+        <Card light style={{ marginBottom: 24, padding: 20 }}>
+          <h2 style={{ fontSize: 18, fontWeight: 900, marginBottom: 16, color: '#2D1810' }}>Hosting</h2>
+          <HostingSection initialEvents={hostEvents} />
+        </Card>
         </ProfileEditProvider>
       </div>
     </div>

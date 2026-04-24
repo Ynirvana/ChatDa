@@ -52,7 +52,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           name: user.name ?? 'Chatda User',
           email: user.email!,
           googleId: account.providerAccountId,
-          profileImage: user.image ?? null,
+          profileImage: null,
           approvalStatus: 'approved',
           approvedAt: new Date(),
           approvedBy: 'system-admin',
@@ -72,7 +72,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           name: user.name ?? 'Chatda User',
           email: user.email!,
           googleId: account.providerAccountId,
-          profileImage: user.image ?? null,
+          profileImage: null,
           approvalStatus: 'approved',
           approvedAt: new Date(),
           approvedBy: 'system-invite',
@@ -96,7 +96,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         name: user.name ?? 'Chatda User',
         email: user.email!,
         googleId: account.providerAccountId,
-        profileImage: user.image ?? null,
+        profileImage: null,
         // approvalStatus default = 'pending'
       });
       return true;
