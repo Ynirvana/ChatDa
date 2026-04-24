@@ -61,3 +61,6 @@ venv/
 
 # DB backups — large files, not for repo
 /backups/
+
+# Claude Code project config and memory
+/.claude/
